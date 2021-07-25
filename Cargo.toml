@@ -1,0 +1,14 @@
+[package]
+name = "shard_ecs"
+version = "0.1.0"
+edition = "2018"
+publish = false
+authors = ["Hindrik Stegenga <mail@hindrik.dev>"]
+description = "The Shard Entity Component System."
+license = "MIT"
+homepage = "https://github.com/HindrikStegenga/Shard"
+repository = "https://github.com/HindrikStegenga/Shard"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
