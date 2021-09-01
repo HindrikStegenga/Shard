@@ -19,4 +19,4 @@ pub const MAX_ENTITY_VERSION_VALUE: u8 = 255;
 
 pub const MAX_COMPONENTS_PER_ENTITY: usize = 16;
 
-pub const ENTITIES_PER_SHARD: usize = 6144;
+pub const ENTITIES_PER_SHARD: usize = 3072;

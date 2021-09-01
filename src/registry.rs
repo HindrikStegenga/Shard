@@ -17,11 +17,31 @@ impl Default for Registry {
 }
 
 impl Registry {
-    fn create_entity_from_component<C: Component>(&mut self) -> Entity {
+    pub fn create_entity_from_component<C: Component>(&mut self) -> Entity {
         todo!()
     }
 
-    fn destroy_entity(&mut self, entity: Entity) {
+    pub fn destroy_entity(&mut self, entity: Entity) -> bool {
+        todo!()
+    }
+
+    pub fn has_component<C: Component>(&self, entity: Entity) -> bool {
+        todo!()
+    }
+
+    pub fn get_component<C: Component>(&self, entity: Entity) -> Option<&C> {
+        todo!()
+    }
+
+    pub fn get_component_mut<C: Component>(&mut self, entity: Entity) -> Option<&mut C> {
+        todo!()
+    }
+
+    pub fn add_component<C: Component>(&mut self, entity: Entity, component: C) -> Result<(), C> {
+        todo!()
+    }
+
+    pub fn remove_component<C: Component>(&mut self, entity: Entity) -> Result<C, ()> {
         todo!()
     }
 }

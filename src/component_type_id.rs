@@ -1,3 +1,5 @@
+use crate::ArchetypeId;
+
 /// Represents the type of a Component as an identifier.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
@@ -6,6 +8,12 @@ pub struct ComponentTypeId(u16);
 impl From<u16> for ComponentTypeId {
     fn from(v: u16) -> Self {
         Self(v)
+    }
+}
+
+impl Into<ArchetypeId> for ComponentTypeId {
+    fn into(self) -> ArchetypeId {
+        ArchetypeId::from_u32(self.0 as u32)
     }
 }
 

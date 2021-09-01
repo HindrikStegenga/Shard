@@ -7,6 +7,12 @@ pub struct Entity {
     handle: u32,
 }
 
+impl Default for Entity {
+    fn default() -> Self {
+        Self::INVALID
+    }
+}
+
 impl Entity {
     pub const INVALID: Entity =
         unsafe { Entity::new(MAX_ENTITY_HANDLE_VALUE, MAX_ENTITY_VERSION_VALUE) };
@@ -14,8 +20,14 @@ impl Entity {
     /// Constructs a new Entity from a raw u32.
     /// The higher/leftmost 24 bits as index, the lower/rightmost 8 bits are used as version.
     #[inline(always)]
-    pub const fn from_raw(raw: u32) -> Entity {
+    pub const unsafe fn from_raw(raw: u32) -> Entity {
         Self { handle: raw }
+    }
+
+    /// Returns if entity is valid, meaning it is NOT equal to Entity::INVALID.
+    #[inline(always)]
+    pub const fn is_valid(&self) -> bool {
+        self.handle != Self::INVALID.handle
     }
 
     /// Returns the invalid entity.

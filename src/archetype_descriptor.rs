@@ -1,6 +1,40 @@
 use crate::component_descriptor::ComponentDescriptor;
 use crate::fnv1a::fnv1a_hash_32;
-use crate::{constants::*, ArchetypeId, ComponentTypeId};
+use crate::{
+    constants::*, copy_from_component_descriptor, ArchetypeId, Component, ComponentTypeId,
+};
+
+#[derive(Debug, Clone)]
+pub struct SizedArchetypeDescriptor<const N: usize> {
+    archetype_id: ArchetypeId,
+    components: [ComponentDescriptor; N],
+}
+
+impl<const N: usize> SizedArchetypeDescriptor<N> {
+    pub const INVALID: Self = Self {
+        archetype_id: ArchetypeId::INVALID,
+        components: [ComponentDescriptor::INVALID; N],
+    };
+
+    pub const fn new(archetype_id: ArchetypeId, components: &[ComponentDescriptor; N]) -> Self {
+        if N == 0 || !archetype_id.is_valid() {
+            return Self::INVALID;
+        }
+        let components = {
+            let mut new_components = [ComponentDescriptor::INVALID; N];
+            let mut i = 0;
+            while i != N {
+                copy_from_component_descriptor!(new_components[i], components[i]);
+                i += 1;
+            }
+            new_components
+        };
+        Self {
+            archetype_id,
+            components,
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct ArchetypeDescriptor {
@@ -35,6 +69,9 @@ impl ArchetypeDescriptor {
         if descriptors.is_empty() {
             return ArchetypeId::from_u32(0);
         }
+        if descriptors.len() == 1 {
+            return ArchetypeId::from_u32(descriptors[0].component_type_id().into_u16() as u32);
+        }
 
         let mut bytes = [0; MAX_COMPONENTS_PER_ENTITY * core::mem::size_of::<ComponentTypeId>()];
         let mut i = 0;
@@ -50,6 +87,30 @@ impl ArchetypeDescriptor {
         ArchetypeId::from_u32(fnv1a_hash_32(&bytes, Some(bytes.len())))
     }
 
+    /// Returns a new archetype with the given component type added to it.
+    /// Returns none if the current archetype already contains the component type or it is full.
+    pub(crate) fn add_component<C: Component>(&self) -> Option<ArchetypeDescriptor> {
+        if self.len as usize == MAX_COMPONENTS_PER_ENTITY || self.len == 1 {
+            return None; // Archetype is full.
+        }
+        match self.components[0..self.len as usize]
+            .binary_search_by_key(&C::ID, |e| e.component_type_id)
+        {
+            Ok(_) => None, // Current archetype already contains given component.
+            Err(insertion_index) => {
+                let mut v = self.clone();
+                for i in insertion_index..self.len as usize + 1 {
+                    v.components[i + 1] = v.components()[i].clone();
+                }
+                v.components[insertion_index] = ComponentDescriptor::from_component::<C>();
+
+                v.len += 1;
+                v.archetype_id =
+                    ArchetypeDescriptor::compute_archetype_id(&v.components[0..v.len() as usize]);
+                Some(v)
+            }
+        }
+    }
     /// Get a the archetype descriptor's archetype id.
     pub const fn archetype_id(&self) -> ArchetypeId {
         self.archetype_id

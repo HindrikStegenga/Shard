@@ -4,7 +4,7 @@ const FNV_OFFSET_BASIS_64: u64 = 0xcbf29ce484222325;
 const FNV_PRIME_32: u32 = 0x01000193;
 const FNV_PRIME_64: u64 = 0x00000100000001B3;
 
-/// Computes 32-bits fnv1a hash of the given slice, or up-to limit if provided.
+/// Computes 64-bits fnv1a hash of the given slice, or up-to limit if provided.
 /// If limit is zero or exceeds slice length, slice length is used instead.
 pub(crate) const fn fnv1a_hash_64(bytes: &[u8], limit: Option<usize>) -> u64 {
     let mut hash = FNV_OFFSET_BASIS_64;

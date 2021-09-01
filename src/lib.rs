@@ -1,3 +1,4 @@
+#![feature(generic_associated_types)]
 #![no_std]
 extern crate alloc;
 
@@ -6,7 +7,6 @@ mod tests;
 
 mod archetype_descriptor;
 mod archetype_id;
-mod archetype_registry;
 mod component;
 mod component_descriptor;
 mod component_group;
