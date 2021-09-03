@@ -19,12 +19,12 @@ struct InvalidEntityEntry {
 
 #[repr(C)]
 #[derive(Clone, Copy)]
-union EntityEntryState {
+pub union EntityEntryState {
     valid: ValidEntityEntry,
     invalid: InvalidEntityEntry,
 }
 
-#[repr(C)]
+#[repr(packed)]
 pub(crate) struct EntityEntry {
     version: u8,
     archetype_length: u8,

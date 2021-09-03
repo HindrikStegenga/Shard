@@ -5,7 +5,9 @@ extern crate alloc;
 #[cfg(test)]
 mod tests;
 
+mod archetype;
 mod archetype_descriptor;
+mod archetype_graph;
 mod archetype_id;
 mod component;
 mod component_descriptor;

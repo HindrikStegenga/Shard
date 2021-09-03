@@ -1,8 +1,11 @@
 #[cfg(test)]
 extern crate std;
 
+use crate::archetype::Archetype;
 use crate::archetype_descriptor::ArchetypeDescriptor;
 use crate::component_descriptor::ComponentDescriptor;
+use crate::entity_registry::*;
+use crate::shard_registry::Shard;
 
 mod component_group;
 mod entity;
@@ -13,6 +16,24 @@ mod shard_registry;
 
 #[test]
 fn test() {
-    std::println!("{}", core::mem::size_of::<ComponentDescriptor>());
-    std::println!("{}", core::mem::size_of::<ArchetypeDescriptor>());
+    std::println!(
+        "EntityEntryState: {}",
+        core::mem::align_of::<EntityEntryState>()
+    );
+    std::println!("EntityEntry: {}", core::mem::align_of::<EntityEntry>());
+
+    std::println!(
+        "EntityEntryState: {}",
+        core::mem::size_of::<EntityEntryState>()
+    );
+    std::println!("EntityEntry: {}", core::mem::size_of::<EntityEntry>());
+    std::println!(
+        "ComponentDescriptor: {}",
+        core::mem::size_of::<ComponentDescriptor>()
+    );
+    std::println!(
+        "ArchetypeDescriptor: {}",
+        core::mem::size_of::<ArchetypeDescriptor>()
+    );
+    std::println!("Shard: {}", core::mem::size_of::<Shard>());
 }

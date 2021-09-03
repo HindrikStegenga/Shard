@@ -5,6 +5,19 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
+pub(crate) struct ArchetypeEdge {
+    add: u16,
+    remove: u16,
+}
+
+impl ArchetypeEdge {
+    const INVALID: Self = Self {
+        add: u16::MAX,
+        remove: u16::MAX,
+    };
+}
+
+#[derive(Debug, Clone)]
 pub struct SizedArchetypeDescriptor<const N: usize> {
     archetype_id: ArchetypeId,
     components: [ComponentDescriptor; N],

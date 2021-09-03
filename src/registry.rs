@@ -1,7 +1,8 @@
 use alloc::vec::Vec;
 
 use crate::{
-    component_descriptor::ComponentDescriptor, entity_registry::EntityRegistry, Component, Entity,
+    component_descriptor::ComponentDescriptor, component_group::SizedComponentGroup,
+    entity_registry::EntityRegistry, Component, Entity,
 };
 
 pub struct Registry {
