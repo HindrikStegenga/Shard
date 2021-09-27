@@ -84,6 +84,35 @@ pub(crate) struct EntityRegistry {
     next_free_slot: u32,
 }
 
+pub(crate) struct ValidEntityRef<'registry> {
+    entity: Entity,
+    entry: &'registry mut EntityEntry,
+}
+
+impl<'registry> ValidEntityRef<'registry> {
+    // Returns the entity
+    pub(crate) fn entity(&self) -> Entity {
+        self.entity
+    }
+
+    /// Sets the shard index. Panics in debug mode on invalid values!!
+    pub(crate) fn set_shard_index(&mut self, shard_index: u16) {
+        self.entry.set_shard_index(shard_index)
+    }
+
+    /// Sets the index in shard. Panics in debug mode on invalid values!!
+    pub(crate) fn set_index_in_shard(&mut self, index_in_shard: u16) {
+        debug_assert!((index_in_shard as usize) < ENTITIES_PER_SHARD);
+        self.entry.set_index_in_shard(index_in_shard)
+    }
+
+    /// Sets the archetype length. Panics in debug mode on invalid values!!
+    pub(crate) fn set_archetype_length(&mut self, archetype_length: u8) {
+        debug_assert!(archetype_length as usize <= MAX_COMPONENTS_PER_ENTITY);
+        self.entry.archetype_length = archetype_length
+    }
+}
+
 impl Default for EntityRegistry {
     #[inline(always)]
     fn default() -> Self {
@@ -95,8 +124,47 @@ impl Default for EntityRegistry {
 }
 
 impl EntityRegistry {
+    /// Returns true if there is space left to store a new entity record.
+    pub(crate) fn can_create_new_entity(&self) -> bool {
+        !(self.entities.len() >= MAX_ENTITY_HANDLE_VALUE as usize)
+    }
+
     /// Registers a new entity into the registry.
-    pub(crate) fn create_entity(
+    pub(crate) fn create_entity(&mut self) -> Option<ValidEntityRef> {
+        if self.entities.len() >= MAX_ENTITY_HANDLE_VALUE as usize {
+            return None;
+        }
+
+        if self.next_free_slot == INVALID_ENTITY_HANDLE_VALUE {
+            // Linked list of free slots is empty, we need to allocate a new entity.
+            self.entities.push(EntityEntry {
+                version: 0,
+                archetype_length: 0,
+                state: EntityEntryState {
+                    valid: ValidEntityEntry {
+                        shard_index: 0,
+                        index_in_shard: 0,
+                    },
+                },
+            });
+            let idx = self.entities.len() - 1;
+            return Some(ValidEntityRef {
+                entity: unsafe { Entity::new(idx as u32, 0) },
+                entry: &mut self.entities[idx],
+            });
+        } else {
+            let old_slot_index = self.next_free_slot;
+            let entry = &mut self.entities[old_slot_index as usize];
+            self.next_free_slot = unsafe { entry.state.invalid.next_free_slot };
+            return Some(ValidEntityRef {
+                entity: unsafe { Entity::new(old_slot_index, entry.version) },
+                entry: entry,
+            });
+        }
+    }
+
+    /// Registers a new entity into the registry.
+    pub(crate) fn create_entity_with(
         &mut self,
         shard_idx: u16,
         index_in_shard: u16,

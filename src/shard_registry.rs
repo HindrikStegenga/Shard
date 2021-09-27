@@ -1,66 +1,12 @@
-use alloc::{boxed::Box, vec::Vec};
-
+use crate::archetype::*;
+use crate::component_group::ComponentGroup;
+use crate::shard::*;
 use crate::{
     archetype_descriptor::ArchetypeDescriptor, component_descriptor::ComponentDescriptor,
     ArchetypeId, Component, Entity, ENTITIES_PER_SHARD, MAX_COMPONENTS_PER_ENTITY,
 };
-
-#[derive(Debug)]
-pub(crate) struct Shard {
-    components: [*mut u8; MAX_COMPONENTS_PER_ENTITY],
-    entities: Option<Box<[Entity; ENTITIES_PER_SHARD]>>,
-    entity_count: u16,
-    next_shard: u16,
-    archetype: u16,
-}
-
-impl Shard {
-    pub fn alloc(archetype: &Archetype, arch_index: u16) -> Option<Self> {
-        use alloc::alloc::*;
-        let mut ptrs = [core::ptr::null_mut(); MAX_COMPONENTS_PER_ENTITY];
-        for i in 0..archetype.descriptor.len() as usize {
-            unsafe {
-                let layout = Layout::from_size_align_unchecked(
-                    archetype.descriptor.components()[i].size() as usize
-                        * MAX_COMPONENTS_PER_ENTITY,
-                    archetype.descriptor.components()[i].align() as usize,
-                );
-                ptrs[i] = alloc(layout);
-                // Check for alloc failures.
-                if ptrs[i] == core::ptr::null_mut() {
-                    for j in 0..i {
-                        let layout = Layout::from_size_align_unchecked(
-                            archetype.descriptor.components()[j].size() as usize
-                                * MAX_COMPONENTS_PER_ENTITY,
-                            archetype.descriptor.components()[j].align() as usize,
-                        );
-                        dealloc(ptrs[j], layout)
-                    }
-                    return None;
-                }
-            }
-        }
-        Self {
-            components: ptrs,
-            entities: Some(Box::new([Default::default(); 3072])),
-            entity_count: 0,
-            next_shard: u16::MAX,
-            archetype: arch_index,
-        }
-        .into()
-    }
-
-    pub fn has_next(&self) -> Option<u16> {
-        match self.next_shard {
-            u16::MAX => None,
-            v => Some(v),
-        }
-    }
-
-    pub fn is_full(&self) -> bool {
-        self.entity_count as usize == ENTITIES_PER_SHARD
-    }
-}
+use alloc::vec;
+use alloc::{boxed::Box, vec::Vec};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 struct SortedArchetypeKey {
@@ -73,14 +19,6 @@ pub(crate) struct AddRemoveInfo<'a> {
     current_shard: &'a mut Shard,
     new_archetype: &'a mut Archetype,
     new_shard: &'a mut Shard,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct Archetype {
-    descriptor: ArchetypeDescriptor,
-    shard_indices: Vec<u16>,
-    super_sets: Vec<u16>,
-    sub_sets: Vec<u16>,
 }
 
 pub(crate) struct ShardRegistry {
@@ -108,8 +46,6 @@ impl Default for ShardRegistry {
                 Vec::with_capacity(128),
                 Vec::with_capacity(64),
                 Vec::with_capacity(64),
-                Vec::with_capacity(64),
-                Vec::with_capacity(64),
             ],
             sorted_mappings: [
                 Vec::with_capacity(512),
@@ -126,14 +62,65 @@ impl Default for ShardRegistry {
                 Vec::with_capacity(128),
                 Vec::with_capacity(64),
                 Vec::with_capacity(64),
-                Vec::with_capacity(64),
-                Vec::with_capacity(64),
             ],
         }
     }
 }
 
 impl ShardRegistry {
+    pub fn get_or_alloc_shard_from_group<G: ComponentGroup>(
+        &mut self,
+    ) -> Option<(&mut Archetype, &mut Shard)> {
+        debug_assert!(G::LENGTH != 0);
+        let archetypes_index = G::LENGTH as usize - 1;
+        match self.sorted_mappings[G::LENGTH as usize - 1]
+            .binary_search_by_key(&G::GROUP_ID, |e| e.id)
+        {
+            Ok(archetype_index) => {
+                let archetype = &mut self.archetypes[archetypes_index][archetype_index];
+
+                if archetype.shard_indices_mut().is_empty()
+                    || self.shards[*archetype.shard_indices_mut().last().unwrap() as usize]
+                        .is_full()
+                {
+                    // alloc new shard.
+                    let shard_idx = self.shards.len();
+                    self.shards.push(Shard::alloc(
+                        archetype.descriptor(),
+                        archetype_index as u16,
+                    )?);
+                    archetype.shard_indices_mut().push(shard_idx as u16);
+                    return Some((archetype, self.shards.last_mut().unwrap()));
+                } else {
+                    let last_shard =
+                        &mut self.shards[*archetype.shard_indices_mut().last().unwrap() as usize];
+                    return Some((archetype, last_shard));
+                }
+            }
+            Err(insertion_index) => {
+                let mut archetype = Archetype::new(G::ARCHETYPE_DESCRIPTOR, Vec::with_capacity(8));
+                // alloc new shard.
+                let shard_idx = self.shards.len();
+                let arch_index = self.archetypes[archetypes_index].len();
+                self.shards
+                    .push(Shard::alloc(&archetype.descriptor(), arch_index as u16)?);
+                archetype.shard_indices_mut().push(shard_idx as u16);
+                self.archetypes[archetypes_index].push(archetype);
+                self.sorted_mappings[archetypes_index].insert(
+                    insertion_index,
+                    SortedArchetypeKey {
+                        id: G::GROUP_ID,
+                        archetype_index: arch_index as u16,
+                    },
+                );
+                let archetype = self.archetypes[archetypes_index].last_mut().unwrap();
+                let last_shard =
+                    &mut self.shards[*archetype.shard_indices_mut().last().unwrap() as usize];
+                return Some((archetype, last_shard));
+            }
+        }
+    }
+
     /// New archetypes can, for now atleast, only be instantiated from 1 component only!
     pub fn get_or_alloc_shard_from_component_descriptor(
         &mut self,
@@ -145,34 +132,30 @@ impl ShardRegistry {
             }) {
             Ok(arch_index) => {
                 let archetype = &mut self.archetypes[0][arch_index];
-                if archetype.shard_indices.is_empty()
-                    || self.shards[*archetype.shard_indices.last().unwrap() as usize].is_full()
+                if archetype.shard_indices_mut().is_empty()
+                    || self.shards[*archetype.shard_indices_mut().last().unwrap() as usize]
+                        .is_full()
                 {
                     // alloc new shard.
                     let shard_idx = self.shards.len();
                     self.shards
-                        .push(Shard::alloc(archetype, arch_index as u16)?);
-                    archetype.shard_indices.push(shard_idx as u16);
+                        .push(Shard::alloc(archetype.descriptor(), arch_index as u16)?);
+                    archetype.shard_indices_mut().push(shard_idx as u16);
                     return Some((archetype, self.shards.last_mut().unwrap()));
                 } else {
                     let last_shard =
-                        &mut self.shards[*archetype.shard_indices.last().unwrap() as usize];
+                        &mut self.shards[*archetype.shard_indices_mut().last().unwrap() as usize];
                     return Some((archetype, last_shard));
                 }
             }
             Err(insertion_index) => {
-                let mut archetype = Archetype {
-                    descriptor: component.into(),
-                    shard_indices: Vec::with_capacity(8),
-                    super_sets: Vec::with_capacity(16),
-                    sub_sets: Vec::with_capacity(0),
-                };
+                let mut archetype = Archetype::new(component.into(), Vec::with_capacity(8));
                 // alloc new shard.
                 let shard_idx = self.shards.len();
                 let arch_index = self.archetypes[0].len();
                 self.shards
-                    .push(Shard::alloc(&archetype, arch_index as u16)?);
-                archetype.shard_indices.push(shard_idx as u16);
+                    .push(Shard::alloc(&archetype.descriptor(), arch_index as u16)?);
+                archetype.shard_indices_mut().push(shard_idx as u16);
                 self.archetypes[0].push(archetype);
                 self.sorted_mappings[0].insert(
                     insertion_index,
@@ -183,25 +166,25 @@ impl ShardRegistry {
                 );
                 let archetype = self.archetypes[0].last_mut().unwrap();
                 let last_shard =
-                    &mut self.shards[*archetype.shard_indices.last().unwrap() as usize];
+                    &mut self.shards[*archetype.shard_indices_mut().last().unwrap() as usize];
                 return Some((archetype, last_shard));
             }
         }
     }
 
-    pub(crate) fn get_or_alloc_shard_adding_component<C: Component>(
-        &mut self,
-        current_shard_index: u16,
-        current_archetype_len: u8,
-    ) -> Option<AddRemoveInfo<'_>> {
-        let current_shard = self.shards.get_mut(current_shard_index as usize)?;
-        let current_archetype = self
-            .archetypes
-            .get_mut(current_archetype_len as usize)?
-            .get_mut(current_shard.archetype as usize)?;
+    // pub(crate) fn get_or_alloc_shard_adding_component<C: Component>(
+    //     &mut self,
+    //     current_shard_index: u16,
+    //     current_archetype_len: u8,
+    // ) -> Option<AddRemoveInfo<'_>> {
+    //     let current_shard = self.shards.get_mut(current_shard_index as usize)?;
+    //     let current_archetype = self
+    //         .archetypes
+    //         .get_mut(current_archetype_len as usize)?
+    //         .get_mut(current_shard.archetype_index() as usize)?;
 
-        let new_archetype = current_archetype.descriptor.add_component::<C>()?;
+    //     let new_archetype = current_archetype.descriptor().add_component::<C>()?;
 
-        None
-    }
+    //     None
+    // }
 }

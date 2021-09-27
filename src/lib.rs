@@ -1,5 +1,5 @@
-#![feature(generic_associated_types)]
 #![no_std]
+#![feature(generic_associated_types)]
 extern crate alloc;
 
 #[cfg(test)]
@@ -18,6 +18,7 @@ mod entity;
 mod entity_registry;
 mod fnv1a;
 mod registry;
+mod shard;
 mod shard_registry;
 
 pub use archetype_id::ArchetypeId;

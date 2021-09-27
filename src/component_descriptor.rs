@@ -62,8 +62,6 @@ impl Into<ArchetypeDescriptor> for &ComponentDescriptor {
                 ComponentDescriptor::INVALID,
                 ComponentDescriptor::INVALID,
                 ComponentDescriptor::INVALID,
-                ComponentDescriptor::INVALID,
-                ComponentDescriptor::INVALID,
             ],
         )
     }
@@ -76,8 +74,6 @@ impl Into<ArchetypeDescriptor> for ComponentDescriptor {
             1,
             [
                 self,
-                ComponentDescriptor::INVALID,
-                ComponentDescriptor::INVALID,
                 ComponentDescriptor::INVALID,
                 ComponentDescriptor::INVALID,
                 ComponentDescriptor::INVALID,

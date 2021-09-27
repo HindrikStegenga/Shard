@@ -17,6 +17,6 @@ pub const ENTITY_VERSION_BITS: u8 = 8;
 /// The maximum value that an entity version can be.
 pub const MAX_ENTITY_VERSION_VALUE: u8 = 255;
 
-pub const MAX_COMPONENTS_PER_ENTITY: usize = 16;
+pub const MAX_COMPONENTS_PER_ENTITY: usize = 14;
 
 pub const ENTITIES_PER_SHARD: usize = 3072;

@@ -1,29 +1,27 @@
-use crate::component_descriptor::ComponentDescriptor;
+use crate::archetype_descriptor::*;
+use alloc::vec::*;
 
 #[derive(Debug, Clone)]
-pub(crate) struct ArchetypeEdge {
-    adding: u16,
-    removing: u16,
+pub(crate) struct Archetype {
+    descriptor: ArchetypeDescriptor,
+    shard_indices: Vec<u16>,
 }
 
-impl ArchetypeEdge {
-    pub(crate) fn new(adding: u16, removing: u16) -> Self {
-        Self { adding, removing }
+impl Archetype {
+    pub(crate) fn new(descriptor: ArchetypeDescriptor, shard_indices: Vec<u16>) -> Self {
+        Self {
+            descriptor,
+            shard_indices,
+        }
     }
 
-    pub(crate) const INVALID: Self = Self {
-        adding: u16::MAX,
-        removing: u16::MAX,
-    };
-}
+    /// Get a mutable reference to the archetype's shard indices.
+    pub(crate) fn shard_indices_mut(&mut self) -> &mut Vec<u16> {
+        &mut self.shard_indices
+    }
 
-pub(crate) struct Archetype<const N: usize> {
-    components: [ComponentDescriptor; N],
-    edges: [ArchetypeEdge; N],
-}
-
-impl<const N: usize> Archetype<N> {
-    pub(crate) fn new(components: [ComponentDescriptor; N], edges: [ArchetypeEdge; N]) -> Self {
-        Self { components, edges }
+    /// Get a reference to the archetype's descriptor.
+    pub(crate) fn descriptor(&self) -> &ArchetypeDescriptor {
+        &self.descriptor
     }
 }

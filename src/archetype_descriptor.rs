@@ -1,59 +1,12 @@
 use crate::component_descriptor::ComponentDescriptor;
 use crate::fnv1a::fnv1a_hash_32;
-use crate::{
-    constants::*, copy_from_component_descriptor, ArchetypeId, Component, ComponentTypeId,
-};
-
-#[derive(Debug, Clone)]
-pub(crate) struct ArchetypeEdge {
-    add: u16,
-    remove: u16,
-}
-
-impl ArchetypeEdge {
-    const INVALID: Self = Self {
-        add: u16::MAX,
-        remove: u16::MAX,
-    };
-}
-
-#[derive(Debug, Clone)]
-pub struct SizedArchetypeDescriptor<const N: usize> {
-    archetype_id: ArchetypeId,
-    components: [ComponentDescriptor; N],
-}
-
-impl<const N: usize> SizedArchetypeDescriptor<N> {
-    pub const INVALID: Self = Self {
-        archetype_id: ArchetypeId::INVALID,
-        components: [ComponentDescriptor::INVALID; N],
-    };
-
-    pub const fn new(archetype_id: ArchetypeId, components: &[ComponentDescriptor; N]) -> Self {
-        if N == 0 || !archetype_id.is_valid() {
-            return Self::INVALID;
-        }
-        let components = {
-            let mut new_components = [ComponentDescriptor::INVALID; N];
-            let mut i = 0;
-            while i != N {
-                copy_from_component_descriptor!(new_components[i], components[i]);
-                i += 1;
-            }
-            new_components
-        };
-        Self {
-            archetype_id,
-            components,
-        }
-    }
-}
+use crate::{constants::*, ArchetypeId, Component, ComponentTypeId};
 
 #[derive(Debug, Clone)]
 pub struct ArchetypeDescriptor {
     archetype_id: ArchetypeId,
-    len: u8,
     components: [ComponentDescriptor; MAX_COMPONENTS_PER_ENTITY],
+    len: u8,
 }
 
 impl ArchetypeDescriptor {
