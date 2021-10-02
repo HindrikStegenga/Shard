@@ -12,6 +12,7 @@ mod archetype_id;
 mod component;
 mod component_descriptor;
 mod component_group;
+mod component_group_descriptor;
 mod component_type_id;
 mod constants;
 mod entity;

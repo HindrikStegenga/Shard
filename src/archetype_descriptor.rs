@@ -33,7 +33,7 @@ impl ArchetypeDescriptor {
 
     pub(crate) const fn compute_archetype_id(descriptors: &[ComponentDescriptor]) -> ArchetypeId {
         if descriptors.is_empty() {
-            return ArchetypeId::from_u32(0);
+            return ArchetypeId::INVALID;
         }
         if descriptors.len() == 1 {
             return ArchetypeId::from_u32(descriptors[0].component_type_id().into_u16() as u32);

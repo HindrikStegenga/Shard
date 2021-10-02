@@ -25,3 +25,17 @@ fn test_component_group_len() {
 
     test_group_len::<(Position, Rotation, Position)>(0);
 }
+
+#[test]
+fn test_component_group_descriptor() {
+    #[cfg(test)]
+    extern crate std;
+
+    assert!(<Position as ComponentGroup>::DESCRIPTOR.is_some());
+    assert!(<(Position, Position) as ComponentGroup>::DESCRIPTOR.is_none());
+    assert!(<(Position, Rotation) as ComponentGroup>::DESCRIPTOR.is_some());
+    std::println!(
+        "{:#?}",
+        <(Position, Rotation) as ComponentGroup>::DESCRIPTOR
+    );
+}

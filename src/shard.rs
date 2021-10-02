@@ -11,6 +11,12 @@ pub(crate) struct EntityMetadata {
     value: Entity,
 }
 
+impl Default for EntityMetadata {
+    fn default() -> Self {
+        Self { value: Entity::INVALID }
+    }
+}
+
 impl EntityMetadata {
     /// Get a reference to the entity metadata's value.
     pub(crate) fn entity(&self) -> Entity {
@@ -21,7 +27,7 @@ impl EntityMetadata {
 #[derive(Debug)]
 pub(crate) struct Shard {
     components: [*mut u8; MAX_COMPONENTS_PER_ENTITY],
-    entities: Option<Box<[Entity; ENTITIES_PER_SHARD]>>,
+    entities: Box<[EntityMetadata; ENTITIES_PER_SHARD]>,
     entity_count: u16,
     next_shard: Option<u16>,
     archetype_index: u16,
@@ -53,7 +59,7 @@ impl Shard {
         }
         Self {
             components: ptrs,
-            entities: Some(Box::new([Default::default(); 3072])),
+            entities: Box::new([Default::default(); 3072]),
             entity_count: 0,
             next_shard: None,
             archetype_index: arch_index,
@@ -96,7 +102,7 @@ impl Shard {
                 G::SORTED_DESCRIPTORS[i].size as usize,
             );
         }
-        (*self.entities)[index as usize] = metadata;
+        self.entities[index as usize] = metadata;
         core::mem::forget(entity);
         index
     }
