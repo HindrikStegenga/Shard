@@ -13,7 +13,9 @@ pub(crate) struct EntityMetadata {
 
 impl Default for EntityMetadata {
     fn default() -> Self {
-        Self { value: Entity::INVALID }
+        Self {
+            value: Entity::INVALID,
+        }
     }
 }
 
@@ -74,7 +76,7 @@ impl Shard {
     /// - But ordering of these components may be different.
     /// - Assumes length of the pool is checked beforehand.
     /// - Takes ownership of `entity`, not calling drop ofcouse.
-    pub unsafe fn push_entity_unchecked<G: ComponentGroup>(
+    pub unsafe fn push_entity_unchecked<'s, G: ComponentGroup<'s>>(
         &mut self,
         metadata: EntityMetadata,
         entity: G,
@@ -89,17 +91,18 @@ impl Shard {
     /// - But ordering of these components may be different.
     /// - Does NOT call drop on the given entity.
     /// - Does NOT call drop on the internal memory, so this needs to be correctly handled manually!.
-    pub(crate) unsafe fn write_entity_unchecked<G: ComponentGroup>(
+    pub(crate) unsafe fn write_entity_unchecked<'s, G: ComponentGroup<'s>>(
         &mut self,
         index: u16,
         metadata: EntityMetadata,
         mut entity: G,
     ) -> u16 {
-        for i in 0..G::LENGTH as usize {
+        for i in 0..G::DESCRIPTOR.unwrap().len() as usize {
             core::ptr::copy_nonoverlapping(
                 self.components[i],
                 self.components[i],
-                G::SORTED_DESCRIPTORS[i].size as usize,
+                // TODO: Fix this
+                0, // G::DESCRIPTOR[i].size as usize,
             );
         }
         self.entities[index as usize] = metadata;

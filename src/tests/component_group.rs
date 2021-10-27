@@ -15,8 +15,11 @@ impl Component for Velocity {
 
 #[test]
 fn test_component_group_len() {
-    fn test_group_len<C: ComponentGroup>(expected_len: usize) {
-        assert_eq!(C::LENGTH as usize, expected_len);
+    fn test_group_len<'c, G: ComponentGroup<'c>>(expected_len: usize) {
+        assert_eq!(
+            G::DESCRIPTOR.unwrap().archetype().len() as usize,
+            expected_len
+        );
     }
 
     test_group_len::<Position>(1);

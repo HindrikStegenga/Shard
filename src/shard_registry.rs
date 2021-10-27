@@ -68,13 +68,15 @@ impl Default for ShardRegistry {
 }
 
 impl ShardRegistry {
-    pub fn get_or_alloc_shard_from_group<G: ComponentGroup>(
+    pub fn get_or_alloc_shard_from_group<'s, G: ComponentGroup<'s>>(
         &mut self,
     ) -> Option<(&mut Archetype, &mut Shard)> {
-        debug_assert!(G::LENGTH != 0);
-        let archetypes_index = G::LENGTH as usize - 1;
-        match self.sorted_mappings[G::LENGTH as usize - 1]
-            .binary_search_by_key(&G::GROUP_ID, |e| e.id)
+        debug_assert!(G::DESCRIPTOR.is_some());
+        debug_assert!(G::DESCRIPTOR.unwrap().len() != 0);
+
+        let archetypes_index = G::DESCRIPTOR.unwrap().len() as usize - 1;
+        return match self.sorted_mappings[G::DESCRIPTOR.unwrap().len() as usize - 1]
+            .binary_search_by_key(&G::DESCRIPTOR.unwrap().archetype().archetype_id(), |e| e.id)
         {
             Ok(archetype_index) => {
                 let archetype = &mut self.archetypes[archetypes_index][archetype_index];
@@ -90,15 +92,18 @@ impl ShardRegistry {
                         archetype_index as u16,
                     )?);
                     archetype.shard_indices_mut().push(shard_idx as u16);
-                    return Some((archetype, self.shards.last_mut().unwrap()));
+                    Some((archetype, self.shards.last_mut().unwrap()))
                 } else {
                     let last_shard =
                         &mut self.shards[*archetype.shard_indices_mut().last().unwrap() as usize];
-                    return Some((archetype, last_shard));
+                    Some((archetype, last_shard))
                 }
             }
             Err(insertion_index) => {
-                let mut archetype = Archetype::new(G::ARCHETYPE_DESCRIPTOR, Vec::with_capacity(8));
+                let mut archetype = Archetype::new(
+                    G::DESCRIPTOR.unwrap().archetype().clone(),
+                    Vec::with_capacity(8),
+                );
                 // alloc new shard.
                 let shard_idx = self.shards.len();
                 let arch_index = self.archetypes[archetypes_index].len();
@@ -109,16 +114,16 @@ impl ShardRegistry {
                 self.sorted_mappings[archetypes_index].insert(
                     insertion_index,
                     SortedArchetypeKey {
-                        id: G::GROUP_ID,
+                        id: G::DESCRIPTOR.unwrap().archetype().archetype_id(),
                         archetype_index: arch_index as u16,
                     },
                 );
                 let archetype = self.archetypes[archetypes_index].last_mut().unwrap();
                 let last_shard =
                     &mut self.shards[*archetype.shard_indices_mut().last().unwrap() as usize];
-                return Some((archetype, last_shard));
+                Some((archetype, last_shard))
             }
-        }
+        };
     }
 
     /// New archetypes can, for now atleast, only be instantiated from 1 component only!

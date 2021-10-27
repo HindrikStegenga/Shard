@@ -1,5 +1,7 @@
 use alloc::vec::Vec;
+use core::borrow::Borrow;
 
+use crate::component_group_descriptor::ComponentGroupDescriptor;
 use crate::{
     component_descriptor::ComponentDescriptor, component_group::ComponentGroup,
     entity_registry::EntityRegistry, shard_registry::ShardRegistry, Component, Entity,
@@ -20,10 +22,11 @@ impl Default for Registry {
 }
 
 impl Registry {
-    pub fn create_entity<G: ComponentGroup>(&mut self, components: G) -> Result<Entity, G> {
-        if G::LENGTH == 0 {
+    pub fn create_entity<'c, G: ComponentGroup<'c>>(&mut self, components: G) -> Result<Entity, G> {
+        if G::DESCRIPTOR.is_none() {
             return Err(components);
-        };
+        }
+
         let entity_entry = match self.entities.create_entity() {
             Some(v) => v,
             None => return Err(components),

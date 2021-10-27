@@ -20,8 +20,8 @@ macro_rules! define_component_descriptor {
 }
 
 #[macro_export]
-macro_rules! copy_from_component_descriptor {
-    ($destination:expr, $source:expr) => {
+macro_rules! copy_component_descriptor_from_to {
+    ($source:expr, $destination:expr) => {
         $destination.component_type_id = $source.component_type_id;
         $destination.size = $source.size;
         $destination.align = $source.align;
@@ -29,12 +29,12 @@ macro_rules! copy_from_component_descriptor {
     };
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ComponentDescriptorFnPointers {
     pub(crate) drop_handler: unsafe fn(ptr: *mut u8, len: usize),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ComponentDescriptor {
     pub(crate) component_type_id: ComponentTypeId,
     pub(crate) size: u16,
@@ -192,93 +192,93 @@ impl ComponentDescriptor {
         return descriptors;
     }
 
-    /// Validates component descriptor slice. Checks length, duplicates and sorting order if desired.
-    /// Returns the provided null slice in case of failure.
-    pub(crate) const fn validate_descriptors_fixed<'a, 'b: 'a, const N: usize>(
-        descriptors: &'a [ComponentDescriptor; N],
-        check_sorting: bool,
-    ) -> &'a [ComponentDescriptor; N] {
-        if descriptors.len() > MAX_COMPONENTS_PER_ENTITY {
-            return &[ComponentDescriptor::INVALID; N];
-        }
-
-        let mut idx = 0;
-        while idx < descriptors.len() {
-            let mut cdx = idx + 1;
-            while cdx < descriptors.len() {
-                if descriptors[idx].component_type_id().into_u16()
-                    == descriptors[cdx].component_type_id().into_u16()
-                {
-                    return &[ComponentDescriptor::INVALID; N];
-                }
-                cdx += 1;
-            }
-            idx += 1;
-        }
-        if check_sorting {
-            idx = 1;
-            while idx < descriptors.len() {
-                if descriptors[idx].component_type_id().into_u16()
-                    > descriptors[idx - 1].component_type_id().into_u16()
-                {
-                    return &[ComponentDescriptor::INVALID; N];
-                }
-                idx += 1;
-            }
-        }
-        return descriptors;
-    }
-
-    /// Writes the slice into a fixed size array.
-    /// # Safety:
-    /// - Slice must be <= MAX_COMPONENTS_PER_ENTITY
-    pub const unsafe fn write_into_fixed_size_array(
-        descriptors: &[ComponentDescriptor],
-    ) -> [ComponentDescriptor; MAX_COMPONENTS_PER_ENTITY] {
-        let mut temp = [ComponentDescriptor::INVALID; MAX_COMPONENTS_PER_ENTITY];
-        let mut i = 0;
-        while i < descriptors.len() {
-            copy_from_component_descriptor!(temp[i], descriptors[i]);
-            i += 1;
-        }
-        temp
-    }
-
-    /// Computes sorted descriptor array. Assumes that the passed array is valid.
-    pub(crate) const fn compute_sorted_descriptors<const N: usize>(
-        descriptors: &[ComponentDescriptor; N],
-    ) -> [ComponentDescriptor; N] {
-        let mut sorted_descriptors: [ComponentDescriptor; N] = {
-            let mut temp = [ComponentDescriptor::INVALID; N];
-            let mut i = 0;
-            while i < descriptors.len() {
-                copy_from_component_descriptor!(temp[i], descriptors[i]);
-                i += 1;
-            }
-            temp
-        };
-        let mut i = 0;
-        while i < sorted_descriptors.len() {
-            let mut j = 0;
-            while j < sorted_descriptors.len() {
-                //TODO: Whenever const_fn traits are finished, implement a const fn version of Ord
-                #[allow(clippy::manual_swap)]
-                if sorted_descriptors[j].component_type_id().into_u16()
-                    > sorted_descriptors[i].component_type_id().into_u16()
-                {
-                    let tmp = ComponentDescriptor {
-                        component_type_id: sorted_descriptors[i].component_type_id,
-                        size: sorted_descriptors[i].size,
-                        align: sorted_descriptors[i].align,
-                        fns: sorted_descriptors[i].fns,
-                    };
-                    copy_from_component_descriptor!(sorted_descriptors[i], sorted_descriptors[j]);
-                    sorted_descriptors[j] = tmp;
-                }
-                j += 1;
-            }
-            i += 1;
-        }
-        sorted_descriptors
-    }
+    // /// Validates component descriptor slice. Checks length, duplicates and sorting order if desired.
+    // /// Returns the provided null slice in case of failure.
+    // pub(crate) const fn validate_descriptors_fixed<'a, 'b: 'a, const N: usize>(
+    //     descriptors: &'a [ComponentDescriptor; N],
+    //     check_sorting: bool,
+    // ) -> &'a [ComponentDescriptor; N] {
+    //     if descriptors.len() > MAX_COMPONENTS_PER_ENTITY {
+    //         return &[ComponentDescriptor::INVALID; N];
+    //     }
+    //
+    //     let mut idx = 0;
+    //     while idx < descriptors.len() {
+    //         let mut cdx = idx + 1;
+    //         while cdx < descriptors.len() {
+    //             if descriptors[idx].component_type_id().into_u16()
+    //                 == descriptors[cdx].component_type_id().into_u16()
+    //             {
+    //                 return &[ComponentDescriptor::INVALID; N];
+    //             }
+    //             cdx += 1;
+    //         }
+    //         idx += 1;
+    //     }
+    //     if check_sorting {
+    //         idx = 1;
+    //         while idx < descriptors.len() {
+    //             if descriptors[idx].component_type_id().into_u16()
+    //                 > descriptors[idx - 1].component_type_id().into_u16()
+    //             {
+    //                 return &[ComponentDescriptor::INVALID; N];
+    //             }
+    //             idx += 1;
+    //         }
+    //     }
+    //     return descriptors;
+    // }
+    //
+    // /// Writes the slice into a fixed size array.
+    // /// # Safety:
+    // /// - Slice must be <= MAX_COMPONENTS_PER_ENTITY
+    // pub const unsafe fn write_into_fixed_size_array(
+    //     descriptors: &[ComponentDescriptor],
+    // ) -> [ComponentDescriptor; MAX_COMPONENTS_PER_ENTITY] {
+    //     let mut temp = [ComponentDescriptor::INVALID; MAX_COMPONENTS_PER_ENTITY];
+    //     let mut i = 0;
+    //     while i < descriptors.len() {
+    //         copy_from_component_descriptor!(temp[i], descriptors[i]);
+    //         i += 1;
+    //     }
+    //     temp
+    // }
+    //
+    // /// Computes sorted descriptor array. Assumes that the passed array is valid.
+    // pub(crate) const fn compute_sorted_descriptors<const N: usize>(
+    //     descriptors: &[ComponentDescriptor; N],
+    // ) -> [ComponentDescriptor; N] {
+    //     let mut sorted_descriptors: [ComponentDescriptor; N] = {
+    //         let mut temp = [ComponentDescriptor::INVALID; N];
+    //         let mut i = 0;
+    //         while i < descriptors.len() {
+    //             copy_from_component_descriptor!(temp[i], descriptors[i]);
+    //             i += 1;
+    //         }
+    //         temp
+    //     };
+    //     let mut i = 0;
+    //     while i < sorted_descriptors.len() {
+    //         let mut j = 0;
+    //         while j < sorted_descriptors.len() {
+    //             //TODO: Whenever const_fn traits are finished, implement a const fn version of Ord
+    //             #[allow(clippy::manual_swap)]
+    //             if sorted_descriptors[j].component_type_id().into_u16()
+    //                 > sorted_descriptors[i].component_type_id().into_u16()
+    //             {
+    //                 let tmp = ComponentDescriptor {
+    //                     component_type_id: sorted_descriptors[i].component_type_id,
+    //                     size: sorted_descriptors[i].size,
+    //                     align: sorted_descriptors[i].align,
+    //                     fns: sorted_descriptors[i].fns,
+    //                 };
+    //                 copy_from_component_descriptor!(sorted_descriptors[i], sorted_descriptors[j]);
+    //                 sorted_descriptors[j] = tmp;
+    //             }
+    //             j += 1;
+    //         }
+    //         i += 1;
+    //     }
+    //     sorted_descriptors
+    // }
 }
