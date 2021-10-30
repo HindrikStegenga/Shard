@@ -26,7 +26,7 @@ fn test_component_group_len() {
     test_group_len::<(Position, Rotation)>(2);
     test_group_len::<(Position, Rotation, Velocity)>(3);
 
-    test_group_len::<(Position, Rotation, Position)>(0);
+    //test_group_len::<(Position, Rotation, Position)>(0);
 }
 
 #[test]

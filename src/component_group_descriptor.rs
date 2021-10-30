@@ -12,21 +12,28 @@ pub struct ComponentGroupDescriptor {
 }
 
 impl ComponentGroupDescriptor {
+    #[inline(always)]
     pub fn archetype(&self) -> &ArchetypeDescriptor {
         &self.archetype
     }
+    #[inline(always)]
     pub fn as_sorted(&self, index: u8) -> &ComponentDescriptor {
-        todo!()
+        &self.archetype.components()[index as usize]
     }
+    #[inline(always)]
     pub fn as_unsorted(&self, index: u8) -> &ComponentDescriptor {
-        todo!()
+        &self.archetype.components()[self.sorted_to_unsorted[index as usize] as usize]
     }
-    pub fn sorted_to_unsorted(&self) -> [u8; MAX_COMPONENTS_PER_ENTITY] {
-        self.sorted_to_unsorted
+
+    #[inline(always)]
+    pub fn sorted_to_unsorted(&self, index: u8) -> u8 {
+        self.sorted_to_unsorted[index as usize]
     }
-    pub fn unsorted_to_sorted(&self) -> [u8; MAX_COMPONENTS_PER_ENTITY] {
-        self.unsorted_to_sorted
+    #[inline(always)]
+    pub fn unsorted_to_sorted(&self, index: u8) -> u8 {
+        self.unsorted_to_sorted[index as usize]
     }
+    #[inline(always)]
     pub fn len(&self) -> u8 {
         self.archetype.len()
     }
@@ -45,10 +52,13 @@ impl ComponentGroupDescriptor {
             return None;
         }
 
+        let (unsorted_to_sorted, sorted_to_unsorted) =
+            ComponentGroupDescriptor::compute_sort_mappings(&descriptors, &sorted_descriptors);
+
         let value = Self {
             archetype: ArchetypeDescriptor::new(id, N as u8, sorted_descriptors),
-            sorted_to_unsorted: [0; MAX_COMPONENTS_PER_ENTITY],
-            unsorted_to_sorted: [0; MAX_COMPONENTS_PER_ENTITY],
+            sorted_to_unsorted,
+            unsorted_to_sorted,
         };
         if !value.archetype.archetype_id().is_valid() {
             return None;
@@ -81,9 +91,10 @@ impl ComponentGroupDescriptor {
     }
 
     /// Computes the sorted version of a given array of descriptors.
-    /// # Warning: only functions correctly if descriptors passed in are correctly validated!!
+    /// # Warning: only functions correctly if descriptors passed in are correctly validated.
+    /// # Similarly, N must be smaller or equal to [`MAX_COMPONENTS_PER_ENTITY`].
     const fn compute_sorted_descriptors<const N: usize>(
-        mut descriptors: &[ComponentDescriptor; N],
+        descriptors: &[ComponentDescriptor; N],
     ) -> [ComponentDescriptor; MAX_COMPONENTS_PER_ENTITY] {
         let mut return_value = [ComponentDescriptor::INVALID; MAX_COMPONENTS_PER_ENTITY];
         let mut i = 0;
@@ -110,6 +121,39 @@ impl ComponentGroupDescriptor {
         }
 
         return_value
+    }
+
+    /// Computes the mappings from sorted to unsorted and from unsorted to sorted.
+    /// # Warning: MUST be used on valid mappings and N must be less than or equal to [`MAX_COMPONENTS_PER_ENTITY`].
+    const fn compute_sort_mappings<const N: usize>(
+        unsorted: &[ComponentDescriptor; N],
+        sorted: &[ComponentDescriptor; MAX_COMPONENTS_PER_ENTITY],
+    ) -> (
+        [u8; MAX_COMPONENTS_PER_ENTITY],
+        [u8; MAX_COMPONENTS_PER_ENTITY],
+    ) {
+        let mut unsorted_to_sorted = [0; MAX_COMPONENTS_PER_ENTITY];
+        let mut sorted_to_unsorted = [0; MAX_COMPONENTS_PER_ENTITY];
+
+        let mut i = 0;
+        while i < N {
+            let mut j = 0;
+            while j < N {
+                if sorted[j].component_type_id.into_u16()
+                    == unsorted[i].component_type_id.into_u16()
+                {
+                    unsorted_to_sorted[i] = j as u8;
+                }
+                if unsorted[j].component_type_id.into_u16()
+                    == sorted[i].component_type_id.into_u16()
+                {
+                    sorted_to_unsorted[i] = j as u8;
+                }
+                j += 1;
+            }
+            i += 1;
+        }
+        (unsorted_to_sorted, sorted_to_unsorted)
     }
 }
 
@@ -174,5 +218,41 @@ mod tests {
             ComponentDescriptor::from_component::<TestComponentC>(),
             result[2]
         );
+    }
+
+    #[test]
+    fn test_compute_sort_mappings() {
+        let unsorted_descriptors: [ComponentDescriptor; 3] = [
+            ComponentDescriptor::from_component::<TestComponentA>(),
+            ComponentDescriptor::from_component::<TestComponentB>(),
+            ComponentDescriptor::from_component::<TestComponentC>(),
+        ];
+        let sorted_descriptors =
+            ComponentGroupDescriptor::compute_sorted_descriptors(&unsorted_descriptors);
+
+        let (unsorted_to_sorted, sorted_to_unsorted) =
+            ComponentGroupDescriptor::compute_sort_mappings(
+                &unsorted_descriptors,
+                &sorted_descriptors,
+            );
+        assert_eq!(unsorted_to_sorted[0..3], [0, 1, 2]);
+        assert_eq!(sorted_to_unsorted[0..3], [0, 1, 2]);
+
+        let unsorted_descriptors: [ComponentDescriptor; 3] = [
+            ComponentDescriptor::from_component::<TestComponentB>(),
+            ComponentDescriptor::from_component::<TestComponentC>(),
+            ComponentDescriptor::from_component::<TestComponentA>(),
+        ];
+
+        let sorted_descriptors =
+            ComponentGroupDescriptor::compute_sorted_descriptors(&unsorted_descriptors);
+
+        let (unsorted_to_sorted, sorted_to_unsorted) =
+            ComponentGroupDescriptor::compute_sort_mappings(
+                &unsorted_descriptors,
+                &sorted_descriptors,
+            );
+        assert_eq!(unsorted_to_sorted[0..3], [1, 2, 0]);
+        assert_eq!(sorted_to_unsorted[0..3], [2, 0, 1]);
     }
 }
