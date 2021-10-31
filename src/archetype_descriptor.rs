@@ -16,6 +16,14 @@ impl ArchetypeDescriptor {
         components: [ComponentDescriptor::INVALID; MAX_COMPONENTS_PER_ENTITY],
     };
 
+    /// Returns true if it is a valid archetype.
+    /// A valid archetype has a length larger than 0 and smaller than [`MAX_COMPONENTS_PER_ENTITY`].
+    /// It also contains no duplicate components.
+    pub const fn is_valid(&self) -> bool {
+        self.archetype_id.is_valid()
+    }
+
+    /// Creates a new archetype descriptor with the given id, length and components.
     pub const fn new(
         archetype_id: ArchetypeId,
         len: u8,

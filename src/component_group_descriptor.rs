@@ -12,6 +12,17 @@ pub struct ComponentGroupDescriptor {
 }
 
 impl ComponentGroupDescriptor {
+    const INVALID: Self = Self {
+        archetype: ArchetypeDescriptor::INVALID,
+        sorted_to_unsorted: [0; MAX_COMPONENTS_PER_ENTITY],
+        unsorted_to_sorted: [0; MAX_COMPONENTS_PER_ENTITY],
+    };
+
+    #[inline(always)]
+    pub const fn is_valid(&self) -> bool {
+        self.archetype.is_valid()
+    }
+
     #[inline(always)]
     pub fn archetype(&self) -> &ArchetypeDescriptor {
         &self.archetype
@@ -40,16 +51,16 @@ impl ComponentGroupDescriptor {
 }
 
 impl ComponentGroupDescriptor {
-    pub const fn new<const N: usize>(descriptors: &[ComponentDescriptor; N]) -> Option<Self> {
+    pub const fn new<const N: usize>(descriptors: &[ComponentDescriptor; N]) -> Self {
         if !Self::validate_component_descriptors(descriptors) {
-            return None;
+            return Self::INVALID;
         }
 
         let sorted_descriptors = Self::compute_sorted_descriptors(descriptors);
 
         let id = ArchetypeDescriptor::compute_archetype_id(&sorted_descriptors);
         if !id.is_valid() {
-            return None;
+            return Self::INVALID;
         }
 
         let (unsorted_to_sorted, sorted_to_unsorted) =
@@ -61,9 +72,9 @@ impl ComponentGroupDescriptor {
             unsorted_to_sorted,
         };
         if !value.archetype.archetype_id().is_valid() {
-            return None;
+            return Self::INVALID;
         }
-        Some(value)
+        value
     }
 
     const fn validate_component_descriptors<const N: usize>(

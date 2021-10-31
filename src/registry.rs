@@ -23,7 +23,7 @@ impl Default for Registry {
 
 impl Registry {
     pub fn create_entity<'c, G: ComponentGroup<'c>>(&mut self, components: G) -> Result<Entity, G> {
-        if G::DESCRIPTOR.is_none() {
+        if !G::DESCRIPTOR.is_valid() {
             return Err(components);
         }
 

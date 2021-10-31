@@ -27,29 +27,8 @@ pub trait ComponentGroup<'c>: private::SealedComponentGroup + Sized + 'static {
     type SliceRefTuple: 'c;
     type SliceMutRefTuple: 'c;
 
-    // /// Amount of component types in the group.
-    // const LENGTH: u8 = if let Some(a) = Self::DESCRIPTOR {
-    //     a.len()
-    // } else {
-    //     0
-    // };
+    const DESCRIPTOR: ComponentGroupDescriptor;
 
-    // /// Unique ID of the group.
-    // const GROUP_ID: ArchetypeId =
-    //     ArchetypeDescriptor::compute_archetype_id(Self::SORTED_DESCRIPTORS);
-
-    const DESCRIPTOR: Option<ComponentGroupDescriptor>;
-
-    //
-    // /// Archetype descriptor representing the group.
-    // const ARCHETYPE_DESCRIPTOR: ArchetypeDescriptor;
-    //
-    // /// Descriptors of the components according to the group's type's ordering.
-    // const DESCRIPTORS: &'static [ComponentDescriptor];
-    // /// Descriptors of the components sorted by their id's. The ECS stores groups internally in this order!
-    // const SORTED_DESCRIPTORS: &'static [ComponentDescriptor];
-
-    #[inline(always)]
     unsafe fn write_to_sorted_pointers(self, ptrs: &mut [*mut u8; MAX_COMPONENTS_PER_ENTITY]);
 }
 
@@ -60,18 +39,8 @@ impl<'c, T: Component + SealedComponentGroup> ComponentGroup<'c> for T {
     type SliceRefTuple = &'c [T];
     type SliceMutRefTuple = &'c mut [T];
 
-    const DESCRIPTOR: Option<ComponentGroupDescriptor> =
+    const DESCRIPTOR: ComponentGroupDescriptor =
         ComponentGroupDescriptor::new(&[define_component_descriptor!(T)]);
-
-    // const ARCHETYPE_DESCRIPTOR: ArchetypeDescriptor =
-    //     ArchetypeDescriptor::new(<Self as ComponentGroup>::GROUP_ID, Self::LENGTH, unsafe {
-    //         ComponentDescriptor::write_into_fixed_size_array(
-    //             <Self as ComponentGroup>::SORTED_DESCRIPTORS,
-    //         )
-    //     });
-    // const DESCRIPTORS: &'static [ComponentDescriptor] = &[define_component_descriptor!(T)];
-    //
-    // const SORTED_DESCRIPTORS: &'static [ComponentDescriptor] = &[define_component_descriptor!(T)];
 
     #[inline(always)]
     unsafe fn write_to_sorted_pointers(self, ptrs: &mut [*mut u8; MAX_COMPONENTS_PER_ENTITY]) {
@@ -91,25 +60,8 @@ macro_rules! impl_component_tuple {
             type SliceRefTuple = ($(&'s [$elem]),*);
             type SliceMutRefTuple = ($(&'s mut [$elem]),*);
 
-            const DESCRIPTOR: Option<ComponentGroupDescriptor> =
+            const DESCRIPTOR: ComponentGroupDescriptor =
                 ComponentGroupDescriptor::new(&[$(define_component_descriptor!($elem)), *]);
-
-            // const DESCRIPTORS: &'static [ComponentDescriptor] = { let s = &[
-            //     $( define_component_descriptor!($elem)), *
-            // ]; ComponentDescriptor::validate_descriptors(s, false, &[]) };
-            //
-            // const SORTED_DESCRIPTORS: &'static [ComponentDescriptor] = {
-            //     let s = [ $( define_component_descriptor!($elem)), * ];
-            //     if ComponentDescriptor::validate_descriptors(&s, false, &[]).is_empty() { &[] } else {
-            //         &ComponentDescriptor::compute_sorted_descriptors(&[ $( define_component_descriptor!($elem)), * ])
-            //     }
-            // };
-            //
-            // const ARCHETYPE_DESCRIPTOR : ArchetypeDescriptor = ArchetypeDescriptor::new(
-            //     <Self as ComponentGroup>::GROUP_ID,
-            //     Self::LENGTH,
-            //     unsafe { ComponentDescriptor::write_into_fixed_size_array(<Self as ComponentGroup>::SORTED_DESCRIPTORS) }
-            // );
 
             unsafe fn write_to_sorted_pointers(self, ptrs: &mut [*mut u8; MAX_COMPONENTS_PER_ENTITY]) {
                 // Due to only having one component if case of T, we can directly write to slot 0.

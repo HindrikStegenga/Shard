@@ -71,12 +71,12 @@ impl ShardRegistry {
     pub fn get_or_alloc_shard_from_group<'s, G: ComponentGroup<'s>>(
         &mut self,
     ) -> Option<(&mut Archetype, &mut Shard)> {
-        debug_assert!(G::DESCRIPTOR.is_some());
-        debug_assert!(G::DESCRIPTOR.unwrap().len() != 0);
+        debug_assert!(G::DESCRIPTOR.is_valid());
+        debug_assert!(G::DESCRIPTOR.len() != 0);
 
-        let archetypes_index = G::DESCRIPTOR.unwrap().len() as usize - 1;
-        return match self.sorted_mappings[G::DESCRIPTOR.unwrap().len() as usize - 1]
-            .binary_search_by_key(&G::DESCRIPTOR.unwrap().archetype().archetype_id(), |e| e.id)
+        let archetypes_index = G::DESCRIPTOR.len() as usize - 1;
+        return match self.sorted_mappings[G::DESCRIPTOR.len() as usize - 1]
+            .binary_search_by_key(&G::DESCRIPTOR.archetype().archetype_id(), |e| e.id)
         {
             Ok(archetype_index) => {
                 let archetype = &mut self.archetypes[archetypes_index][archetype_index];
@@ -100,10 +100,8 @@ impl ShardRegistry {
                 }
             }
             Err(insertion_index) => {
-                let mut archetype = Archetype::new(
-                    G::DESCRIPTOR.unwrap().archetype().clone(),
-                    Vec::with_capacity(8),
-                );
+                let mut archetype =
+                    Archetype::new(G::DESCRIPTOR.archetype().clone(), Vec::with_capacity(8));
                 // alloc new shard.
                 let shard_idx = self.shards.len();
                 let arch_index = self.archetypes[archetypes_index].len();
@@ -114,7 +112,7 @@ impl ShardRegistry {
                 self.sorted_mappings[archetypes_index].insert(
                     insertion_index,
                     SortedArchetypeKey {
-                        id: G::DESCRIPTOR.unwrap().archetype().archetype_id(),
+                        id: G::DESCRIPTOR.archetype().archetype_id(),
                         archetype_index: arch_index as u16,
                     },
                 );

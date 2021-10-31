@@ -97,7 +97,7 @@ impl Shard {
         metadata: EntityMetadata,
         mut entity: G,
     ) -> u16 {
-        for i in 0..G::DESCRIPTOR.unwrap().len() as usize {
+        for i in 0..G::DESCRIPTOR.len() as usize {
             core::ptr::copy_nonoverlapping(
                 self.components[i],
                 self.components[i],
