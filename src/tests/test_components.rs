@@ -1,6 +1,6 @@
 use crate::*;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub(crate) struct A {
     _data: usize,
 }
@@ -13,7 +13,7 @@ impl Component for A {
     const NAME: &'static str = "A";
     const ID: ComponentTypeId = ComponentTypeId::from_u16(1);
 }
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub(crate) struct B {
     _data: usize,
 }
@@ -26,7 +26,7 @@ impl Component for B {
     const NAME: &'static str = "B";
     const ID: ComponentTypeId = ComponentTypeId::from_u16(2);
 }
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub(crate) struct C {
     _data: usize,
 }

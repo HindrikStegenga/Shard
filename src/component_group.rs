@@ -43,12 +43,12 @@ pub trait ComponentGroup<'c>: private::SealedComponentGroup + Sized + 'static {
     ) -> Self::MutRefTuple;
 
     unsafe fn slice_unchecked(
-        sorted_pointers: &mut [*mut u8; MAX_COMPONENTS_PER_ENTITY],
+        sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
         len: usize,
     ) -> Self::SliceRefTuple;
 
     unsafe fn slice_unchecked_mut(
-        sorted_pointers: &mut [*mut u8; MAX_COMPONENTS_PER_ENTITY],
+        sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
         len: usize,
     ) -> Self::SliceMutRefTuple;
 }
@@ -84,7 +84,7 @@ impl<'c, T: Component + SealedComponentGroup> ComponentGroup<'c> for T {
 
     #[inline(always)]
     unsafe fn slice_unchecked(
-        sorted_pointers: &mut [*mut u8; MAX_COMPONENTS_PER_ENTITY],
+        sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
         len: usize,
     ) -> Self::SliceRefTuple {
         core::slice::from_raw_parts(sorted_pointers[0] as *const T, len)
@@ -92,7 +92,7 @@ impl<'c, T: Component + SealedComponentGroup> ComponentGroup<'c> for T {
 
     #[inline(always)]
     unsafe fn slice_unchecked_mut(
-        sorted_pointers: &mut [*mut u8; MAX_COMPONENTS_PER_ENTITY],
+        sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
         len: usize,
     ) -> Self::SliceMutRefTuple {
         core::slice::from_raw_parts_mut(sorted_pointers[0] as *mut T, len)
@@ -140,7 +140,7 @@ macro_rules! impl_component_tuple {
 
             #[inline(always)]
             unsafe fn slice_unchecked(
-                sorted_pointers: &mut [*mut u8; MAX_COMPONENTS_PER_ENTITY],
+                sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
                 len: usize,
             ) -> Self::SliceRefTuple {
                 ($(
@@ -150,7 +150,7 @@ macro_rules! impl_component_tuple {
 
             #[inline(always)]
             unsafe fn slice_unchecked_mut(
-                sorted_pointers: &mut [*mut u8; MAX_COMPONENTS_PER_ENTITY],
+                sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
                 len: usize,
             ) -> Self::SliceMutRefTuple {
                                 ($(
