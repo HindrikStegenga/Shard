@@ -9,6 +9,9 @@ use crate::shard::Shard;
 
 mod component_group;
 mod entity;
+mod test_components;
+
+pub(crate) use test_components::*;
 
 mod entity_registry;
 
