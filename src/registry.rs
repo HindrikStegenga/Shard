@@ -31,14 +31,14 @@ impl Registry {
             Some(v) => v,
             None => return Err(components),
         };
-        let (archetype, shard) = match self.shards.get_or_alloc_shard_from_group::<G>() {
-            Some(v) => v,
-            None => {
-                let entity = entity_entry.entity();
-                self.entities.destroy_entity(entity);
-                return Err(components);
-            }
-        };
+        // let (archetype, shard) = match self.shards.get_or_alloc_shard_from_group::<G>() {
+        //     Some(v) => v,
+        //     None => {
+        //         let entity = entity_entry.entity();
+        //         self.entities.destroy_entity(entity);
+        //         return Err(components);
+        //     }
+        // };
         //let entity = self.entities.create_entity(0, 0, G::LENGTH);
         todo!()
     }

@@ -3,7 +3,8 @@ use crate::component_group::ComponentGroup;
 use crate::shard::*;
 use crate::{
     archetype_descriptor::ArchetypeDescriptor, component_descriptor::ComponentDescriptor,
-    ArchetypeId, Component, Entity, ENTITIES_PER_SHARD, MAX_COMPONENTS_PER_ENTITY,
+    ArchetypeId, Component, Entity, ENTITIES_PER_SHARD, MAX_ARCHETYPE_COUNT,
+    MAX_COMPONENTS_PER_ENTITY, MAX_SHARD_COUNT,
 };
 use alloc::vec;
 use alloc::{boxed::Box, vec::Vec};
@@ -14,17 +15,11 @@ struct SortedArchetypeKey {
     archetype_index: u16,
 }
 
-pub(crate) struct AddRemoveInfo<'a> {
-    current_archetype: &'a mut Archetype,
-    current_shard: &'a mut Shard,
-    new_archetype: &'a mut Archetype,
-    new_shard: &'a mut Shard,
-}
-
 pub(crate) struct ShardRegistry {
     sorted_mappings: [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
     archetypes: [Vec<Archetype>; MAX_COMPONENTS_PER_ENTITY],
     shards: Vec<Shard>,
+    next_recyclable_shard: Option<u16>,
 }
 
 impl Default for ShardRegistry {
@@ -63,131 +58,103 @@ impl Default for ShardRegistry {
                 Vec::with_capacity(64),
                 Vec::with_capacity(64),
             ],
+            next_recyclable_shard: None,
         }
     }
 }
 
 impl ShardRegistry {
-    pub fn get_or_alloc_shard_from_group<'s, G: ComponentGroup<'s>>(
+    pub fn find_or_create_non_empty_archetype_shard(
         &mut self,
+        archetype_descriptor: &ArchetypeDescriptor,
     ) -> Option<(&mut Archetype, &mut Shard)> {
-        debug_assert!(G::DESCRIPTOR.is_valid());
-        debug_assert!(G::DESCRIPTOR.len() != 0);
-
-        let archetypes_index = G::DESCRIPTOR.len() as usize - 1;
-        return match self.sorted_mappings[G::DESCRIPTOR.len() as usize - 1]
-            .binary_search_by_key(&G::DESCRIPTOR.archetype().archetype_id(), |e| e.id)
+        if !archetype_descriptor.is_valid() {
+            // Effectively this ensures length is valid ( 0 < len <= MAX_COMPONENTS_PER_ENTITY by construction.
+            return None;
+        }
+        let archetype_level_index = archetype_descriptor.len() as usize - 1;
+        return match self.sorted_mappings[archetype_level_index]
+            .binary_search_by_key(&archetype_descriptor.archetype_id(), |e| e.id)
         {
-            Ok(archetype_index) => {
-                let archetype = &mut self.archetypes[archetypes_index][archetype_index];
+            Ok(found_index) => {
+                let archetype_key = &self.sorted_mappings[archetype_level_index][found_index];
+                let mut archetype = &mut self.archetypes[archetype_level_index]
+                    [archetype_key.archetype_index as usize];
 
-                if archetype.shard_indices_mut().is_empty()
-                    || self.shards[*archetype.shard_indices_mut().last().unwrap() as usize]
-                        .is_full()
-                {
-                    // alloc new shard.
-                    let shard_idx = self.shards.len();
-                    self.shards.push(Shard::alloc(
-                        archetype.descriptor(),
-                        archetype_index as u16,
-                    )?);
-                    archetype.shard_indices_mut().push(shard_idx as u16);
-                    Some((archetype, self.shards.last_mut().unwrap()))
-                } else {
-                    let last_shard =
-                        &mut self.shards[*archetype.shard_indices_mut().last().unwrap() as usize];
-                    Some((archetype, last_shard))
-                }
+                unimplemented!()
             }
             Err(insertion_index) => {
-                let mut archetype =
-                    Archetype::new(G::DESCRIPTOR.archetype().clone(), Vec::with_capacity(8));
-                // alloc new shard.
-                let shard_idx = self.shards.len();
-                let arch_index = self.archetypes[archetypes_index].len();
-                self.shards
-                    .push(Shard::alloc(&archetype.descriptor(), arch_index as u16)?);
-                archetype.shard_indices_mut().push(shard_idx as u16);
-                self.archetypes[archetypes_index].push(archetype);
-                self.sorted_mappings[archetypes_index].insert(
-                    insertion_index,
-                    SortedArchetypeKey {
-                        id: G::DESCRIPTOR.archetype().archetype_id(),
-                        archetype_index: arch_index as u16,
-                    },
-                );
-                let archetype = self.archetypes[archetypes_index].last_mut().unwrap();
-                let last_shard =
-                    &mut self.shards[*archetype.shard_indices_mut().last().unwrap() as usize];
-                Some((archetype, last_shard))
+                // Archetype not found
+                self.create_archetype_and_shard(archetype_descriptor, insertion_index as u16)
             }
         };
     }
 
-    /// New archetypes can, for now atleast, only be instantiated from 1 component only!
-    pub fn get_or_alloc_shard_from_component_descriptor(
+    unsafe fn fetch_or_create_shard(
         &mut self,
-        component: &ComponentDescriptor,
-    ) -> Option<(&mut Archetype, &mut Shard)> {
-        match self.sorted_mappings[0]
-            .binary_search_by_key(&component.component_type_id().into_u16(), |e| {
-                e.id.into_u32() as u16
-            }) {
-            Ok(arch_index) => {
-                let archetype = &mut self.archetypes[0][arch_index];
-                if archetype.shard_indices_mut().is_empty()
-                    || self.shards[*archetype.shard_indices_mut().last().unwrap() as usize]
-                        .is_full()
-                {
-                    // alloc new shard.
-                    let shard_idx = self.shards.len();
-                    self.shards
-                        .push(Shard::alloc(archetype.descriptor(), arch_index as u16)?);
-                    archetype.shard_indices_mut().push(shard_idx as u16);
-                    return Some((archetype, self.shards.last_mut().unwrap()));
-                } else {
-                    let last_shard =
-                        &mut self.shards[*archetype.shard_indices_mut().last().unwrap() as usize];
-                    return Some((archetype, last_shard));
-                }
+        archetype_descriptor: &ArchetypeDescriptor,
+        archetype_index: u16,
+    ) -> Option<(&mut Shard, u16)> {
+        return if let Some(shard_index) = self.next_recyclable_shard {
+            let recyclable_shard = &mut self.shards[shard_index as usize];
+            //TODO: Implement reuse?
+            // In theory if the archetype is identical we might not need to re_alloc.
+            // We might also be able to re-use part of the allocations.
+            // For now assume it is deallocated already.
+            let next_recyclable_shard_index = recyclable_shard.has_next();
+            let mut new_shard = Shard::new(&archetype_descriptor, archetype_index)?;
+            //TODO: We could do without this and do it in place.
+            core::mem::swap(recyclable_shard, &mut new_shard);
+            self.next_recyclable_shard = next_recyclable_shard_index;
+            Some((recyclable_shard, shard_index))
+        } else {
+            if self.shards.len() >= MAX_SHARD_COUNT {
+                return None;
             }
-            Err(insertion_index) => {
-                let mut archetype = Archetype::new(component.into(), Vec::with_capacity(8));
-                // alloc new shard.
-                let shard_idx = self.shards.len();
-                let arch_index = self.archetypes[0].len();
-                self.shards
-                    .push(Shard::alloc(&archetype.descriptor(), arch_index as u16)?);
-                archetype.shard_indices_mut().push(shard_idx as u16);
-                self.archetypes[0].push(archetype);
-                self.sorted_mappings[0].insert(
-                    insertion_index,
-                    SortedArchetypeKey {
-                        id: component.component_type_id().into(),
-                        archetype_index: arch_index as u16,
-                    },
-                );
-                let archetype = self.archetypes[0].last_mut().unwrap();
-                let last_shard =
-                    &mut self.shards[*archetype.shard_indices_mut().last().unwrap() as usize];
-                return Some((archetype, last_shard));
-            }
-        }
+            // Push a new shard onto the back of the registry.
+            let new_shard_index = self.shards.len() as u16;
+            let shard = Shard::new(&archetype_descriptor, archetype_index)?;
+            self.shards.push(shard);
+            Some((self.shards.last_mut().unwrap(), new_shard_index))
+        };
     }
 
-    // pub(crate) fn get_or_alloc_shard_adding_component<C: Component>(
-    //     &mut self,
-    //     current_shard_index: u16,
-    //     current_archetype_len: u8,
-    // ) -> Option<AddRemoveInfo<'_>> {
-    //     let current_shard = self.shards.get_mut(current_shard_index as usize)?;
-    //     let current_archetype = self
-    //         .archetypes
-    //         .get_mut(current_archetype_len as usize)?
-    //         .get_mut(current_shard.archetype_index() as usize)?;
+    fn create_archetype_and_shard(
+        &mut self,
+        archetype_descriptor: &ArchetypeDescriptor,
+        insertion_index: u16,
+    ) -> Option<(&mut Archetype, &mut Shard)> {
+        if self.shards.len() >= MAX_SHARD_COUNT || self.archetypes.len() >= MAX_ARCHETYPE_COUNT {
+            return None;
+        }
+        debug_assert!(archetype_descriptor.is_valid());
 
-    //     let new_archetype = current_archetype.descriptor().add_component::<C>()?;
+        let new_arch_index = (archetype_descriptor.len() as usize - 1) as u16;
+        let (_, new_shard_index) =
+            unsafe { self.fetch_or_create_shard(&archetype_descriptor, new_arch_index)? };
+        let archetype = Archetype::new(archetype_descriptor.clone(), new_shard_index as u16);
 
-    //     None
-    // }
+        self.sorted_mappings[archetype.descriptor().len() as usize - 1].insert(
+            insertion_index as usize,
+            SortedArchetypeKey {
+                id: archetype.descriptor().archetype_id(),
+                archetype_index: new_arch_index,
+            },
+        );
+        self.archetypes[new_arch_index as usize].push(archetype);
+        Some((
+            self.archetypes[new_arch_index as usize].last_mut().unwrap(),
+            &mut self.shards[new_shard_index as usize],
+        ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::shard_registry::ShardRegistry;
+
+    #[test]
+    fn test_create_default_shard_registry() {
+        ShardRegistry::default();
+    }
 }

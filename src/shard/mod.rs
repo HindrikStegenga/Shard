@@ -1,42 +1,36 @@
+mod metadata;
+
 use crate::archetype::*;
 use crate::archetype_descriptor::ArchetypeDescriptor;
 use crate::component_group::ComponentGroup;
 use crate::constants::*;
 use crate::entity::*;
 use alloc::boxed::Box;
-
-#[repr(transparent)]
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub(crate) struct EntityMetadata {
-    value: Entity,
-}
-
-impl Default for EntityMetadata {
-    fn default() -> Self {
-        Self {
-            value: Entity::INVALID,
-        }
-    }
-}
-
-impl EntityMetadata {
-    /// Get a reference to the entity metadata's value.
-    pub(crate) fn entity(&self) -> Entity {
-        unsafe { Entity::new(self.value.index(), 0) }
-    }
-}
+use alloc::sync::Arc;
+use core::ptr::null_mut;
+use metadata::*;
 
 #[derive(Debug)]
 pub(crate) struct Shard {
     components: [*mut u8; MAX_COMPONENTS_PER_ENTITY],
     entities: Box<[EntityMetadata; ENTITIES_PER_SHARD]>,
     entity_count: u16,
-    next_shard: Option<u16>,
     archetype_index: u16,
+    next_shard: Option<u16>,
 }
 
 impl Shard {
-    pub fn alloc(archetype: &ArchetypeDescriptor, arch_index: u16) -> Option<Self> {
+    /// Shards can also be a 'linked list marker', this means they can to be re-used.
+    /// They therefore must not store any component data.
+    /// This is marked by setting entity_count to [`ENTITIES_PER_SHARD`] + 1.
+    /// If a shard is a linked list marker, the [`next_shard`] points to the next available shard if any.
+    pub fn is_linked_list_marker(&self) -> bool {
+        return self.entity_count as usize == ENTITIES_PER_SHARD + 1;
+    }
+
+    /// Constructs a new shard instance using the descriptor and archetype index.
+    /// TODO: Allow re-use of the entity metadata array.
+    pub fn new(archetype: &ArchetypeDescriptor, archetype_index: u16) -> Option<Self> {
         use alloc::alloc::*;
         let mut ptrs = [core::ptr::null_mut(); MAX_COMPONENTS_PER_ENTITY];
         for i in 0..archetype.len() as usize {
@@ -48,23 +42,17 @@ impl Shard {
                 ptrs[i] = alloc(layout);
                 // Check for alloc failures.
                 if ptrs[i] == core::ptr::null_mut() {
-                    for j in 0..i {
-                        let layout = Layout::from_size_align_unchecked(
-                            archetype.components()[j].size() as usize * MAX_COMPONENTS_PER_ENTITY,
-                            archetype.components()[j].align() as usize,
-                        );
-                        dealloc(ptrs[j], layout)
-                    }
+                    Self::dealloc_pointers(&mut ptrs[0..i], archetype);
                     return None;
                 }
             }
         }
         Self {
             components: ptrs,
-            entities: Box::new([Default::default(); 3072]),
+            entities: Box::new([Default::default(); ENTITIES_PER_SHARD]),
             entity_count: 0,
+            archetype_index,
             next_shard: None,
-            archetype_index: arch_index,
         }
         .into()
     }
@@ -144,7 +132,7 @@ impl Shard {
     ) -> [*mut u8; MAX_COMPONENTS_PER_ENTITY] {
         let mut pointers = [core::ptr::null_mut(); MAX_COMPONENTS_PER_ENTITY];
         for (index, descriptor) in G::DESCRIPTOR.archetype().components().iter().enumerate() {
-            'inner_loop: for check_index in index..G::DESCRIPTOR.len() as usize {
+            'inner_loop: for check_index in index..archetype.len() as usize {
                 if archetype.components()[check_index]
                     .component_type_id
                     .into_u16()
@@ -190,9 +178,32 @@ impl Shard {
         self.entity_count as usize >= ENTITIES_PER_SHARD
     }
 
-    /// Get the shard's archetype index.
-    pub(crate) fn archetype_index(&self) -> u16 {
-        self.archetype_index
+    /// Deallocates the memory associated with the pointers in the shard.
+    /// # Safety:
+    /// - Deallocated the backing memory of the shard.
+    /// - Asserts that no components exist anymore!
+    /// - Components must be dropped beforehand!
+    /// - Must only be called with the descriptor it was allocated with!
+    pub unsafe fn dealloc(&mut self, descriptor: &ArchetypeDescriptor) {
+        assert_eq!(self.entity_count, 0);
+        Self::dealloc_pointers(&mut self.components, descriptor);
+    }
+
+    /// Forcibly deallocates the memory associated with the pointers.
+    /// # Safety:
+    /// - Deallocated the backing memory of the shard.
+    /// - Components must be dropped beforehand!
+    /// - Must only be called with the descriptor it was allocated with!
+    unsafe fn dealloc_pointers(pointers: &mut [*mut u8], descriptor: &ArchetypeDescriptor) {
+        use alloc::alloc::*;
+        for i in 0..pointers.len() {
+            let layout = Layout::from_size_align_unchecked(
+                descriptor.components()[i].size() as usize * MAX_COMPONENTS_PER_ENTITY,
+                descriptor.components()[i].align() as usize,
+            );
+            dealloc(pointers[i], layout);
+            pointers[i] = core::ptr::null_mut();
+        }
     }
 }
 
@@ -207,13 +218,12 @@ mod tests {
             let group = (A::default(), B::default(), C::default());
             let descriptor = <(A, B, C) as ComponentGroup<'_>>::DESCRIPTOR.archetype();
 
-            let mut shard = Shard::alloc(&descriptor, 0);
+            let mut shard = Shard::new(&descriptor, 0);
             assert!(shard.is_some());
             let mut shard = shard.unwrap();
 
-            let meta = EntityMetadata {
-                value: Default::default(),
-            };
+            let meta = EntityMetadata::default();
+
             let idx = shard.push_entity_unchecked(meta, (A::default(), B::default(), C::default()));
             assert_eq!(shard.entity_count, 1);
             assert_eq!(meta, shard.entities[0]);

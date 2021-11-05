@@ -16,17 +16,17 @@ impl Component for Velocity {
 
 #[test]
 fn test_shard_registry() {
-    let mut registry: ShardRegistry = Default::default();
-    for _ in 0..10 {
-        let (_, _) = registry
-            .get_or_alloc_shard_from_component_descriptor(&ComponentDescriptor::from_component::<
-                Position,
-            >())
-            .unwrap();
-        let (_, _) = registry
-            .get_or_alloc_shard_from_component_descriptor(&ComponentDescriptor::from_component::<
-                Rotation,
-            >())
-            .unwrap();
-    }
+    // let mut registry: ShardRegistry = Default::default();
+    // for _ in 0..10 {
+    //     let (_, _) = registry
+    //         .get_or_alloc_shard_from_component_descriptor(&ComponentDescriptor::from_component::<
+    //             Position,
+    //         >())
+    //         .unwrap();
+    //     let (_, _) = registry
+    //         .get_or_alloc_shard_from_component_descriptor(&ComponentDescriptor::from_component::<
+    //             Rotation,
+    //         >())
+    //         .unwrap();
+    // }
 }
