@@ -20,6 +20,12 @@ pub(crate) struct Shard {
 }
 
 impl Shard {
+    pub fn set_next_shard(&mut self, next_shard: Option<u16>) {
+        self.next_shard = next_shard;
+    }
+}
+
+impl Shard {
     /// Shards can also be a 'linked list marker', this means they can to be re-used.
     /// They therefore must not store any component data.
     /// This is marked by setting entity_count to [`ENTITIES_PER_SHARD`] + 1.
