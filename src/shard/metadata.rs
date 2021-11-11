@@ -2,7 +2,7 @@ use crate::Entity;
 
 #[repr(transparent)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub(crate) struct EntityMetadata {
+pub struct EntityMetadata {
     value: Entity,
 }
 

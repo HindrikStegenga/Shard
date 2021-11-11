@@ -1,4 +1,6 @@
 mod metadata;
+#[cfg(test)]
+mod tests;
 
 use crate::archetype::*;
 use crate::archetype_descriptor::ArchetypeDescriptor;
@@ -7,31 +9,56 @@ use crate::constants::*;
 use crate::entity::*;
 use alloc::boxed::Box;
 use alloc::sync::Arc;
+use core::hint::unreachable_unchecked;
+use core::num::NonZeroU16;
 use core::ptr::null_mut;
 use metadata::*;
 
 #[derive(Debug)]
 pub(crate) struct Shard {
     components: [*mut u8; MAX_COMPONENTS_PER_ENTITY],
-    entities: Box<[EntityMetadata; ENTITIES_PER_SHARD]>,
+    entities: Option<Box<[EntityMetadata; ENTITIES_PER_SHARD]>>,
     entity_count: u16,
     archetype_index: u16,
-    next_shard: Option<u16>,
+    next_shard: Option<u16>, // Forms a linked list!
+                             //reorder_buffer_handle: u16, // TODO: re-order buffer handle.
 }
 
 impl Shard {
-    pub fn set_next_shard(&mut self, next_shard: Option<u16>) {
-        self.next_shard = next_shard;
+    /// Returns true if the shard is in recycled state.
+    /// Recycled state means that it contains no valid entity data.
+    /// It is indicated by whether the entities array is present or not.
+    #[cfg(debug_assertions)]
+    pub fn is_recycled_shard(&self) -> bool {
+        self.entities.is_none()
     }
-}
 
-impl Shard {
-    /// Shards can also be a 'linked list marker', this means they can to be re-used.
-    /// They therefore must not store any component data.
-    /// This is marked by setting entity_count to [`ENTITIES_PER_SHARD`] + 1.
-    /// If a shard is a linked list marker, the [`next_shard`] points to the next available shard if any.
-    pub fn is_linked_list_marker(&self) -> bool {
-        return self.entity_count as usize == ENTITIES_PER_SHARD + 1;
+    /// Drops the components in the shard and deallocates the memory. This is unsafe for obvious reasons!
+    pub unsafe fn drop_and_dealloc_components(
+        &mut self,
+        archetype_descriptor: &ArchetypeDescriptor,
+    ) {
+        if self.entity_count == 0 {
+            return;
+        }
+        for i in 0..archetype_descriptor.len() as usize {
+            (archetype_descriptor.components()[i].fns.drop_handler)(
+                self.components[i],
+                self.entity_count as usize,
+            );
+        }
+        Self::dealloc_pointers(&mut self.components, archetype_descriptor);
+        self.entity_count = 0;
+    }
+
+    pub unsafe fn recycle(
+        &mut self,
+        archetype_descriptor: &ArchetypeDescriptor,
+    ) -> Box<[EntityMetadata; ENTITIES_PER_SHARD]> {
+        debug_assert!(self.entities.is_some());
+
+        self.drop_and_dealloc_components(archetype_descriptor);
+        self.entities.take().unwrap()
     }
 
     /// Constructs a new shard instance using the descriptor and archetype index.
@@ -55,10 +82,11 @@ impl Shard {
         }
         Self {
             components: ptrs,
-            entities: Box::new([Default::default(); ENTITIES_PER_SHARD]),
+            entities: Box::new([Default::default(); ENTITIES_PER_SHARD]).into(),
             entity_count: 0,
             archetype_index,
             next_shard: None,
+            //reorder_buffer_handle: 0,
         }
         .into()
     }
@@ -104,7 +132,7 @@ impl Shard {
                 G::DESCRIPTOR.archetype().components()[i].size as usize,
             );
         }
-        self.entities[index as usize] = metadata;
+        self.entities.as_mut().unwrap()[index as usize] = metadata;
         core::mem::forget(entity);
         index
     }
@@ -176,23 +204,8 @@ impl Shard {
         G::slice_unchecked_mut(&pointers, self.entity_count as usize)
     }
 
-    pub fn has_next(&self) -> Option<u16> {
-        self.next_shard
-    }
-
     pub fn is_full(&self) -> bool {
         self.entity_count as usize >= ENTITIES_PER_SHARD
-    }
-
-    /// Deallocates the memory associated with the pointers in the shard.
-    /// # Safety:
-    /// - Deallocated the backing memory of the shard.
-    /// - Asserts that no components exist anymore!
-    /// - Components must be dropped beforehand!
-    /// - Must only be called with the descriptor it was allocated with!
-    pub unsafe fn dealloc(&mut self, descriptor: &ArchetypeDescriptor) {
-        assert_eq!(self.entity_count, 0);
-        Self::dealloc_pointers(&mut self.components, descriptor);
     }
 
     /// Forcibly deallocates the memory associated with the pointers.
@@ -209,55 +222,6 @@ impl Shard {
             );
             dealloc(pointers[i], layout);
             pointers[i] = core::ptr::null_mut();
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::tests::*;
-
-    #[test]
-    fn test_shard() {
-        unsafe {
-            let group = (A::default(), B::default(), C::default());
-            let descriptor = <(A, B, C) as ComponentGroup<'_>>::DESCRIPTOR.archetype();
-
-            let mut shard = Shard::new(&descriptor, 0);
-            assert!(shard.is_some());
-            let mut shard = shard.unwrap();
-
-            let meta = EntityMetadata::default();
-
-            let idx = shard.push_entity_unchecked(meta, (A::default(), B::default(), C::default()));
-            assert_eq!(shard.entity_count, 1);
-            assert_eq!(meta, shard.entities[0]);
-
-            let slices: (&[A], &[B], &[C]) = shard.get_slices_unchecked_exact::<(A, B, C)>();
-            assert_eq!(slices.0.len(), 1);
-            assert_eq!(slices.1.len(), 1);
-            assert_eq!(slices.0[0], A::default());
-            assert_eq!(slices.1[0], B::default());
-            assert_eq!(slices.2[0], C::default());
-            let slices: (&[B], &[A], &[C]) = shard.get_slices_unchecked_exact::<(B, A, C)>();
-            assert_eq!(slices.0.len(), 1);
-            assert_eq!(slices.1.len(), 1);
-            assert_eq!(slices.0[0], B::default());
-            assert_eq!(slices.1[0], A::default());
-            assert_eq!(slices.2[0], C::default());
-
-            let slices: (&[B], &[A]) = shard.get_fuzzy_slices_unchecked::<(B, A)>(descriptor);
-            assert_eq!(slices.0.len(), 1);
-            assert_eq!(slices.1.len(), 1);
-            assert_eq!(slices.0[0], B::default());
-            assert_eq!(slices.1[0], A::default());
-
-            let slices: (&[A], &[C]) = shard.get_fuzzy_slices_unchecked::<(A, C)>(descriptor);
-            assert_eq!(slices.0.len(), 1);
-            assert_eq!(slices.1.len(), 1);
-            assert_eq!(slices.0[0], A::default());
-            assert_eq!(slices.1[0], C::default());
         }
     }
 }

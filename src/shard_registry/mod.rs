@@ -1,3 +1,12 @@
+#[cfg(test)]
+mod tests;
+
+mod internal;
+mod sorted_archetype_key;
+
+use internal::*;
+use sorted_archetype_key::*;
+
 use crate::archetype::*;
 use crate::component_group::ComponentGroup;
 use crate::shard::*;
@@ -9,58 +18,11 @@ use crate::{
 use alloc::vec;
 use alloc::{boxed::Box, vec::Vec};
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-struct SortedArchetypeKey {
-    id: ArchetypeId,
-    archetype_index: u16,
-}
-
 pub(crate) struct ShardRegistry {
     sorted_mappings: [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
     archetypes: [Vec<Archetype>; MAX_COMPONENTS_PER_ENTITY],
     shards: Vec<Shard>,
     next_recyclable_shard: Option<u16>,
-}
-
-impl Default for ShardRegistry {
-    fn default() -> Self {
-        Self {
-            shards: Vec::with_capacity(256),
-            archetypes: [
-                Vec::with_capacity(512),
-                Vec::with_capacity(512),
-                Vec::with_capacity(512),
-                Vec::with_capacity(512),
-                Vec::with_capacity(256),
-                Vec::with_capacity(256),
-                Vec::with_capacity(256),
-                Vec::with_capacity(256),
-                Vec::with_capacity(128),
-                Vec::with_capacity(128),
-                Vec::with_capacity(128),
-                Vec::with_capacity(128),
-                Vec::with_capacity(64),
-                Vec::with_capacity(64),
-            ],
-            sorted_mappings: [
-                Vec::with_capacity(512),
-                Vec::with_capacity(512),
-                Vec::with_capacity(512),
-                Vec::with_capacity(512),
-                Vec::with_capacity(256),
-                Vec::with_capacity(256),
-                Vec::with_capacity(256),
-                Vec::with_capacity(256),
-                Vec::with_capacity(128),
-                Vec::with_capacity(128),
-                Vec::with_capacity(128),
-                Vec::with_capacity(128),
-                Vec::with_capacity(64),
-                Vec::with_capacity(64),
-            ],
-            next_recyclable_shard: None,
-        }
-    }
 }
 
 impl ShardRegistry {
@@ -109,13 +71,30 @@ impl ShardRegistry {
             // Grab the archetype using the sort key.
             &mut self.archetypes[archetype_level_index][archetype_index as usize]
         };
-        let mut last_shard = &mut self.shards[archetype.last_shard_index() as usize];
-        // If the last shard still has space for an entity, we can return this shard and the archetype.
-        if !last_shard.is_full() {
-            return Some((archetype, last_shard));
-        }
 
-        unimplemented!()
+        // If the last shard still has space for an entity, we can return this shard and the archetype.
+        let last_shard_index = archetype.last_shard_index() as usize;
+        if !self.shards[last_shard_index].is_full() {
+            return Some((archetype, &mut self.shards[last_shard_index]));
+        }
+        // We need to recycle or create a new shard.
+        Self::create_or_recycle_shard(archetype, &mut self.shards, &mut self.next_recyclable_shard)
+    }
+
+    fn create_or_recycle_shard<'a>(
+        archetype: &'a mut Archetype,
+        shards: &'a mut Vec<Shard>,
+        next_recyclable_shard: &'a mut Option<u16>,
+    ) -> Option<(&'a mut Archetype, &'a mut Shard)> {
+        return if let Some(shard_index) = next_recyclable_shard {
+            let mut last_shard = &mut shards[archetype.last_shard_index() as usize];
+            // Set the new last shard index on the current last shard..
+            //last_shard.set_next_shard(Some(*shard_index));
+
+            unimplemented!()
+        } else {
+            unimplemented!()
+        };
     }
 
     unsafe fn fetch_or_create_shard(
@@ -127,19 +106,20 @@ impl ShardRegistry {
             &mut self.archetypes[archetype_descriptor.len() as usize - 1][archetype_index as usize];
         return if let Some(shard_index) = self.next_recyclable_shard {
             let mut last_shard = &mut self.shards[archetype.last_shard_index() as usize];
-            last_shard.set_next_shard(Some(shard_index));
+            //last_shard.set_next_shard(Some(shard_index));
             archetype.set_last_shard_index(shard_index);
             let recyclable_shard = &mut self.shards[shard_index as usize];
             //TODO: Implement reuse?
             // In theory if the archetype is identical we might not need to re_alloc.
             // We might also be able to re-use part of the allocations.
             // For now assume it is deallocated already.
-            let next_recyclable_shard_index = recyclable_shard.has_next();
-            let mut new_shard = Shard::new(&archetype_descriptor, archetype_index)?;
+            //let next_recyclable_shard_index = recyclable_shard.has_next();
+            //let mut new_shard = Shard::new(&archetype_descriptor, archetype_index)?;
             //TODO: We could do without this and do it in place.
-            core::mem::swap(recyclable_shard, &mut new_shard);
-            self.next_recyclable_shard = next_recyclable_shard_index;
-            Some((recyclable_shard, shard_index))
+            //core::mem::swap(recyclable_shard, &mut new_shard);
+            //self.next_recyclable_shard = next_recyclable_shard_index;
+            unimplemented!()
+            //Some((recyclable_shard, shard_index))
         } else {
             if self.shards.len() >= MAX_SHARD_COUNT {
                 return None;
@@ -179,27 +159,5 @@ impl ShardRegistry {
             self.archetypes[new_arch_index as usize].last_mut().unwrap(),
             &mut self.shards[new_shard_index as usize],
         ))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::component_group::ComponentGroup;
-    use crate::component_group_descriptor::ComponentGroupDescriptor;
-    use crate::shard_registry::ShardRegistry;
-    use crate::tests::*;
-
-    #[test]
-    fn test_create_default_shard_registry() {
-        ShardRegistry::default();
-    }
-
-    #[test]
-    fn test_shard_registry() {
-        let mut registry = ShardRegistry::default();
-
-        let shard = registry.find_or_create_single_entity_shard_from_group::<(A, B)>();
-        assert!(shard.is_some());
-        let shard = shard.unwrap();
     }
 }
