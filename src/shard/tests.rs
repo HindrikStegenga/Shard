@@ -15,7 +15,7 @@ fn test_shard() {
 
         let idx = shard.push_entity_unchecked(meta, (A::default(), B::default(), C::default()));
         assert_eq!(shard.entity_count, 1);
-        assert_eq!(meta, shard.entities.as_ref().unwrap()[0]);
+        assert_eq!(meta, shard.entities.as_ref()[0]);
 
         let slices: (&[A], &[B], &[C]) = shard.get_slices_unchecked_exact::<(A, B, C)>();
         assert_eq!(slices.0.len(), 1);

@@ -1,4 +1,5 @@
-mod metadata;
+pub mod metadata;
+
 #[cfg(test)]
 mod tests;
 
@@ -17,7 +18,7 @@ use metadata::*;
 #[derive(Debug)]
 pub(crate) struct Shard {
     components: [*mut u8; MAX_COMPONENTS_PER_ENTITY],
-    entities: Option<Box<[EntityMetadata; ENTITIES_PER_SHARD]>>,
+    entities: Box<[EntityMetadata; ENTITIES_PER_SHARD]>,
     entity_count: u16,
     archetype_index: u16,
     next_shard: u16, // Forms a linked list!
@@ -37,12 +38,12 @@ impl Shard {
         self.next_shard = next_shard
     }
 
-    /// Returns true if the shard is in recycled state.
+    /// Returns true if the shard is ready to be recycled.
     /// Recycled state means that it contains no valid entity data.
-    /// It is indicated by whether the entities array is present or not.
+    /// It is indicated by whether the archetype index is invalid or not.
     #[cfg(debug_assertions)]
-    pub fn is_recycled_shard(&self) -> bool {
-        self.entities.is_none()
+    pub fn is_recyclable_shard(&self) -> bool {
+        self.archetype_index == INVALID_ARCHETYPE_INDEX
     }
 
     /// Drops the components in the shard and deallocates the memory. This is unsafe for obvious reasons!
@@ -59,42 +60,78 @@ impl Shard {
                 self.entity_count as usize,
             );
         }
-        Self::dealloc_pointers(&mut self.components, archetype_descriptor);
+        Self::dealloc_pointers(&mut self.components[0..archetype_descriptor.len() as usize], archetype_descriptor);
         self.entity_count = 0;
     }
 
-    pub unsafe fn recycle(
+    /// Makes a shard ready to be recycled. This means the components are dropped.
+    /// This is only valid if a shard is NOT currently in recyclable state.
+    /// [`next_recyclable_shard`] is the next shard in the recycle linked list OR
+    /// must be set to [`INVALID_ARCHETYPE_INDEX`] if it is the last in the recycle linked list.
+    pub unsafe fn make_recyclable(
         &mut self,
         archetype_descriptor: &ArchetypeDescriptor,
-    ) -> Box<[EntityMetadata; ENTITIES_PER_SHARD]> {
-        debug_assert!(self.entities.is_some());
-
+        next_recyclable_shard: u16
+    ) {
+        debug_assert!(!self.is_recyclable_shard());
         self.drop_and_dealloc_components(archetype_descriptor);
-        self.entities.take().unwrap()
+        self.archetype_index = INVALID_ARCHETYPE_INDEX;
+        self.next_shard = next_recyclable_shard;
     }
 
-    /// Constructs a new shard instance using the descriptor and archetype index.
-    /// TODO: Allow re-use of the entity metadata array.
-    pub fn new(archetype: &ArchetypeDescriptor, archetype_index: u16) -> Option<Self> {
+    /// Recycles the shard allocating new memory for components according to the archetype descriptor.
+    pub unsafe fn recycle(&mut self, archetype_descriptor: &ArchetypeDescriptor, archetype_index: u16) -> Option<&mut Shard> {
+        debug_assert!(self.is_recyclable_shard());
+        debug_assert!(archetype_index != INVALID_ARCHETYPE_INDEX);
+        #[cfg(debug_assertions)]
+        {
+            self.components.iter().for_each(|e|
+                debug_assert_eq!(*e, core::ptr::null_mut())
+            );
+        }
+
+        self.entity_count = 0;
+        if !Self::alloc_components(&mut self.components, archetype_descriptor) { return None; }
+        self.archetype_index = archetype_index;
+        Some(self)
+    }
+
+    /// Allocates memory according to the archetype descriptor and stores the pointers into pointers.
+    /// Returns false if an allocation failure occurred.
+    fn alloc_components(pointers: &mut [*mut u8; MAX_COMPONENTS_PER_ENTITY], archetype_descriptor: &ArchetypeDescriptor) -> bool {
+        #[cfg(debug_assertions)]
+        { pointers.iter().for_each(|e| debug_assert_eq!(*e, core::ptr::null_mut())); }
+        debug_assert!(archetype_descriptor.is_valid());
+
         use alloc::alloc::*;
-        let mut ptrs = [core::ptr::null_mut(); MAX_COMPONENTS_PER_ENTITY];
-        for i in 0..archetype.len() as usize {
+        for i in 0..archetype_descriptor.len() as usize {
             unsafe {
                 let layout = Layout::from_size_align_unchecked(
-                    archetype.components()[i].size() as usize * MAX_COMPONENTS_PER_ENTITY,
-                    archetype.components()[i].align() as usize,
+                    archetype_descriptor.components()[i].size() as usize * MAX_COMPONENTS_PER_ENTITY,
+                    archetype_descriptor.components()[i].align() as usize,
                 );
-                ptrs[i] = alloc(layout);
+                pointers[i] = alloc(layout);
                 // Check for alloc failures.
-                if ptrs[i] == core::ptr::null_mut() {
-                    Self::dealloc_pointers(&mut ptrs[0..i], archetype);
-                    return None;
+                if pointers[i] == core::ptr::null_mut() {
+                    Self::dealloc_pointers(&mut pointers[0..i], archetype_descriptor);
+                    return false;
                 }
             }
         }
+        true
+    }
+
+    /// Constructs a new shard instance using the descriptor and archetype index.
+    pub fn new(archetype_descriptor: &ArchetypeDescriptor, archetype_index: u16) -> Option<Self> {
+        debug_assert!(archetype_index != INVALID_ARCHETYPE_INDEX);
+        debug_assert!(archetype_descriptor.is_valid());
+        let mut pointers = [core::ptr::null_mut(); MAX_COMPONENTS_PER_ENTITY];
+        if !Self::alloc_components(&mut pointers, archetype_descriptor) {
+            return None;
+        }
         Self {
-            components: ptrs,
-            entities: Box::new([Default::default(); ENTITIES_PER_SHARD]).into(),
+            components: pointers,
+            entities: Box::new([Default::default(); ENTITIES_PER_SHARD]),
             entity_count: 0,
             archetype_index,
             next_shard: INVALID_SHARD_INDEX,
@@ -144,7 +181,7 @@ impl Shard {
                 G::DESCRIPTOR.archetype().components()[i].size as usize,
             );
         }
-        self.entities.as_mut().unwrap()[index as usize] = metadata;
+        self.entities.as_mut()[index as usize] = metadata;
         core::mem::forget(entity);
         index
     }

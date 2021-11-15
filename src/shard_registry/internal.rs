@@ -47,14 +47,13 @@ impl ShardRegistry {
     pub(super) fn verify_consistency(&self) -> bool {
         self.archetypes.iter().for_each(|e| {
             e.iter().enumerate().for_each(|(idx, e)| {
-                assert_ne!(e.first_shard_index(), 0);
                 let mut current_sh_idx = e.first_shard_index();
                 while {
                     let shard = &self.shards[current_sh_idx as usize];
-                    assert!(shard.is_recycled_shard());
+                    assert!(shard.is_recyclable_shard());
                     assert_eq!(shard.archetype_index() as usize, idx);
                     current_sh_idx = shard.next_shard();
-                    current_sh_idx != e.last_shard_index()
+                    current_sh_idx != e.last_shard_index() && current_sh_idx != INVALID_SHARD_INDEX
                 } {}
             });
         });
@@ -90,24 +89,43 @@ impl ShardRegistry {
         archetype: &'a mut Archetype,
         archetype_index: u16,
         shards: &'a mut Vec<Shard>,
-        next_recyclable_shard: &'a mut Option<u16>,
+        mut next_recyclable_shard: &'a mut Option<u16>,
     ) -> Option<(&'a mut Archetype, &'a mut Shard, u16)> {
         let last_shard_index = archetype.last_shard_index() as usize;
-        debug_assert!(!shards[last_shard_index].is_recycled_shard());
+        debug_assert!({ if last_shard_index != INVALID_SHARD_INDEX as usize { !shards[last_shard_index].is_recyclable_shard() } else { true }});
 
-        return if let Some(shard_index) = next_recyclable_shard {
-            let mut last_shard = &mut shards[last_shard_index];
-            // Set the new last shard index on the current last shard..
-            //last_shard.set_next_shard(Some(*shard_index));
-
-            unimplemented!()
+        return if let Some(shard_index) = *next_recyclable_shard {
+            let mut shard = &mut shards[shard_index as usize];
+            debug_assert!(shard.is_recyclable_shard());
+            // Store next recyclable shard in linked list.
+            let mut t_recycle_shard = {
+                let v = shard.next_shard();
+                if v == INVALID_SHARD_INDEX {
+                    None
+                } else {
+                    Some(v)
+                }
+            };
+            let mut shard = unsafe { shard.recycle(archetype.descriptor(), archetype_index)? };
+            // Update next recyclable linked list
+            *next_recyclable_shard = t_recycle_shard;
+            shard.set_next_shard(INVALID_SHARD_INDEX);
+            if last_shard_index != INVALID_SHARD_INDEX as usize {
+                shards[last_shard_index].set_next_shard(shard_index);
+            }
+            archetype.set_last_shard_index(shard_index);
+            Some((archetype, &mut shards[shard_index as usize], shard_index))
         } else {
             // No shard to recycle, so we create a new shard.
 
             let shard_index = shards.len() as u16;
             shards.push(Shard::new(archetype.descriptor(), archetype_index)?);
-            debug_assert_eq!(shards[last_shard_index].next_shard(), INVALID_SHARD_INDEX);
-            shards[last_shard_index].set_next_shard(shard_index);
+            debug_assert_eq!({ if last_shard_index != INVALID_SHARD_INDEX as usize { shards[last_shard_index].next_shard() } else { INVALID_SHARD_INDEX }}, INVALID_SHARD_INDEX);
+
+            if last_shard_index != INVALID_SHARD_INDEX as usize {
+                shards[last_shard_index].set_next_shard(shard_index);
+            }
+
             archetype.set_last_shard_index(shard_index);
             Some((archetype, &mut shards[shard_index as usize], shard_index))
         };
@@ -126,9 +144,9 @@ impl ShardRegistry {
         debug_assert!(archetype_descriptor.is_valid());
 
         let new_arch_index = (archetype_descriptor.len() as usize - 1) as u16;
-        let mut archetype = Archetype::new(archetype_descriptor.clone(), 0);
-        let new_shard_index = 0;
-        //archetype.set_last_shard_index(shard_index);
+        let mut archetype = Archetype::new(archetype_descriptor.clone(), INVALID_SHARD_INDEX);
+        let (_, _, new_shard_index) = Self::create_or_recycle_shard_for_archetype(&mut archetype, new_arch_index, &mut self.shards, &mut self.next_recyclable_shard)?;
+        unsafe { archetype.set_first_shard_index(new_shard_index) };
         self.sorted_mappings[archetype.descriptor().len() as usize - 1].insert(
             insertion_index as usize,
             SortedArchetypeKey {
@@ -141,5 +159,24 @@ impl ShardRegistry {
             self.archetypes[new_arch_index as usize].last_mut().unwrap(),
             &mut self.shards[new_shard_index as usize],
         ))
+    }
+}
+
+impl Drop for ShardRegistry {
+    fn drop(&mut self) {
+        //TODO: Consider storing a compressed level index into shards?
+        // It could be stored in entities? it would make this dropping more efficient.
+        self.archetypes.iter().for_each(|e| {
+            e.iter().enumerate().for_each(|(idx, e)| {
+                let mut current_sh_idx = e.first_shard_index();
+                while {
+                    let shard = &mut self.shards[current_sh_idx as usize];
+                    unsafe { shard.drop_and_dealloc_components(e.descriptor()) };
+                    current_sh_idx = shard.next_shard();
+                    current_sh_idx != e.last_shard_index() && current_sh_idx != INVALID_SHARD_INDEX
+                } {}
+            });
+        });
+
     }
 }

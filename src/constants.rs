@@ -31,3 +31,6 @@ pub const INVALID_SHARD_INDEX: u16 = u16::MAX;
 
 /// The maximum amount of unique archetypes that a registry can contain.
 pub const MAX_ARCHETYPE_COUNT: usize = (u16::MAX - 1) as usize;
+
+/// Valid archetyupe indices can never have this value.
+pub const INVALID_ARCHETYPE_INDEX: u16 = u16::MAX;

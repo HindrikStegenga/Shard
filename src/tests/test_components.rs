@@ -1,6 +1,6 @@
 use crate::*;
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub(crate) struct A {
     _data: usize,
 }
@@ -13,7 +13,7 @@ impl Component for A {
     const NAME: &'static str = "A";
     const ID: ComponentTypeId = ComponentTypeId::from_u16(1);
 }
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub(crate) struct B {
     _data: usize,
 }
@@ -26,7 +26,7 @@ impl Component for B {
     const NAME: &'static str = "B";
     const ID: ComponentTypeId = ComponentTypeId::from_u16(2);
 }
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub(crate) struct C {
     _data: usize,
 }
@@ -38,4 +38,64 @@ impl Default for C {
 impl Component for C {
     const NAME: &'static str = "C";
     const ID: ComponentTypeId = ComponentTypeId::from_u16(3);
+}
+#[derive(Clone, Eq, PartialEq, Debug)]
+pub(crate) struct DropLogA {
+    _data: usize,
+}
+impl Default for DropLogA {
+    fn default() -> Self {
+        Self { _data: 4 }
+    }
+}
+impl Component for DropLogA {
+    const NAME: &'static str = "DropLogA";
+    const ID: ComponentTypeId = ComponentTypeId::from_u16(4);
+}
+#[cfg(test)]
+impl Drop for DropLogA {
+    fn drop(&mut self) {
+        extern crate std;
+        std::println!("Dropping A: {:#?}", self as *const Self);
+    }
+}
+#[derive(Clone, Eq, PartialEq, Debug)]
+pub(crate) struct DropLogB {
+    _data: usize,
+}
+impl Default for DropLogB {
+    fn default() -> Self {
+        Self { _data: 5 }
+    }
+}
+impl Component for DropLogB {
+    const NAME: &'static str = "DropLogB";
+    const ID: ComponentTypeId = ComponentTypeId::from_u16(5);
+}
+#[cfg(test)]
+impl Drop for DropLogB {
+    fn drop(&mut self) {
+        extern crate std;
+        std::println!("Dropping B: {:#?}", self as *const Self);
+    }
+}
+#[derive(Clone, Eq, PartialEq, Debug)]
+pub(crate) struct DropLogC {
+    _data: usize,
+}
+impl Default for DropLogC {
+    fn default() -> Self {
+        Self { _data: 6 }
+    }
+}
+impl Component for DropLogC {
+    const NAME: &'static str = "DropLogC";
+    const ID: ComponentTypeId = ComponentTypeId::from_u16(6);
+}
+#[cfg(test)]
+impl Drop for DropLogC {
+    fn drop(&mut self) {
+        extern crate std;
+        std::println!("Dropping C: {:#?}", self as *const Self);
+    }
 }
