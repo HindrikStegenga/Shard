@@ -20,11 +20,23 @@ pub(crate) struct Shard {
     entities: Option<Box<[EntityMetadata; ENTITIES_PER_SHARD]>>,
     entity_count: u16,
     archetype_index: u16,
-    next_shard: Option<u16>, // Forms a linked list!
-                             //reorder_buffer_handle: u16, // TODO: re-order buffer handle.
+    next_shard: u16, // Forms a linked list!
+                     //reorder_buffer_handle: u16, // TODO: re-order buffer handle.
 }
 
 impl Shard {
+    pub fn archetype_index(&self) -> u16 {
+        self.archetype_index
+    }
+
+    pub fn next_shard(&self) -> u16 {
+        self.next_shard
+    }
+
+    pub fn set_next_shard(&mut self, next_shard: u16) {
+        self.next_shard = next_shard
+    }
+
     /// Returns true if the shard is in recycled state.
     /// Recycled state means that it contains no valid entity data.
     /// It is indicated by whether the entities array is present or not.
@@ -85,7 +97,7 @@ impl Shard {
             entities: Box::new([Default::default(); ENTITIES_PER_SHARD]).into(),
             entity_count: 0,
             archetype_index,
-            next_shard: None,
+            next_shard: INVALID_SHARD_INDEX,
             //reorder_buffer_handle: 0,
         }
         .into()

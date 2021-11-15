@@ -24,7 +24,10 @@ pub const MAX_COMPONENTS_PER_ENTITY: usize = 14;
 pub const ENTITIES_PER_SHARD: usize = 3072;
 
 /// The maximum amount of shards that a registry can contain.
-pub const MAX_SHARD_COUNT: usize = (u16::MAX - 1) as usize;
+pub const MAX_SHARD_COUNT: u16 = u16::MAX - 1;
+
+/// Valid shard indices can never have this value.
+pub const INVALID_SHARD_INDEX: u16 = u16::MAX;
 
 /// The maximum amount of unique archetypes that a registry can contain.
 pub const MAX_ARCHETYPE_COUNT: usize = (u16::MAX - 1) as usize;
