@@ -7,7 +7,6 @@ mod tests;
 
 mod archetype;
 mod archetype_descriptor;
-mod archetype_graph;
 mod archetype_id;
 mod component;
 mod component_descriptor;
@@ -19,8 +18,8 @@ mod entity;
 mod entity_registry;
 mod fnv1a;
 mod registry;
-mod shard;
-mod shard_registry;
+//mod shard;
+//mod shard_registry;
 
 pub use archetype_id::ArchetypeId;
 pub use component::Component;

@@ -4,19 +4,19 @@ use core::borrow::Borrow;
 use crate::component_group_descriptor::ComponentGroupDescriptor;
 use crate::{
     component_descriptor::ComponentDescriptor, component_group::ComponentGroup,
-    entity_registry::EntityRegistry, shard_registry::ShardRegistry, Component, Entity,
+    entity_registry::EntityRegistry, Component, Entity,
 };
 
 pub struct Registry {
     entities: EntityRegistry,
-    shards: ShardRegistry,
+
 }
 
 impl Default for Registry {
     fn default() -> Self {
         Self {
             entities: EntityRegistry::default(),
-            shards: ShardRegistry::default(),
+
         }
     }
 }

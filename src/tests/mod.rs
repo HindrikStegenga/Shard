@@ -5,7 +5,7 @@ use crate::archetype::*;
 use crate::archetype_descriptor::ArchetypeDescriptor;
 use crate::component_descriptor::ComponentDescriptor;
 use crate::entity_registry::*;
-use crate::shard::Shard;
+//use crate::shard::Shard;
 
 mod component_group;
 mod entity;
@@ -14,8 +14,6 @@ mod test_components;
 pub(crate) use test_components::*;
 
 mod entity_registry;
-
-mod shard_registry;
 
 #[test]
 fn test() {
@@ -39,5 +37,4 @@ fn test() {
         core::mem::size_of::<ArchetypeDescriptor>()
     );
     std::println!("Archetype: {}", core::mem::size_of::<Archetype>());
-    std::println!("Shard: {}", core::mem::size_of::<Shard>());
 }

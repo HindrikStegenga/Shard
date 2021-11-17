@@ -34,3 +34,9 @@ pub const MAX_ARCHETYPE_COUNT: usize = (u16::MAX - 1) as usize;
 
 /// Valid archetyupe indices can never have this value.
 pub const INVALID_ARCHETYPE_INDEX: u16 = u16::MAX;
+
+/// Maximum amount of entities that can be stored for a given archetype.
+pub const MAX_ENTITIES_PER_ARCHETYPE: u32 = MAX_ENTITY_HANDLE_VALUE;
+
+/// The default amount of elements for which space is reserved if an entity is pushed into an empty archetype.
+pub const DEFAULT_ARCHETYPE_ALLOCATION_SIZE: usize = 128;

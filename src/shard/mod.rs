@@ -26,14 +26,17 @@ pub(crate) struct Shard {
 }
 
 impl Shard {
+    /// Returns the archetype index associated with the shard..
     pub fn archetype_index(&self) -> u16 {
         self.archetype_index
     }
 
+    /// Returns the next shard index. If this value is [`INVALID_ARCHETYPE_INDEX`], there is no next shard.
     pub fn next_shard(&self) -> u16 {
         self.next_shard
     }
 
+    /// Sets the next shard value.
     pub fn set_next_shard(&mut self, next_shard: u16) {
         self.next_shard = next_shard
     }
@@ -208,6 +211,10 @@ impl Shard {
         G::slice_unchecked_mut(&self.components, self.entity_count as usize)
     }
 
+    /// Returns the pointers for the components in G, provided that shard itself contains a superset of G.
+    /// This function is slower than the exact version, use that if an exact type match is known.
+    /// # Safety:
+    /// - Only call this with subsets of the types stored in the shard.
     #[inline(always)]
     unsafe fn get_fuzzy_pointers_unchecked<'s, G: ComponentGroup<'s>>(
         &'s self,
