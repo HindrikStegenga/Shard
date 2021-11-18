@@ -3,7 +3,7 @@ use crate::archetype::metadata::EntityMetadata;
 use crate::archetype_descriptor::ArchetypeDescriptor;
 use crate::component_group::ComponentGroup;
 use crate::MAX_ENTITIES_PER_ARCHETYPE;
-use crate::tests::*;
+use crate::test_components::*;
 
 
 #[test]

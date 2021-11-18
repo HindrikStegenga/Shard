@@ -2,9 +2,6 @@
 
 extern crate alloc;
 
-#[cfg(test)]
-mod tests;
-
 mod archetype;
 mod archetype_descriptor;
 mod archetype_id;
@@ -18,6 +15,7 @@ mod entity;
 mod entity_registry;
 mod fnv1a;
 mod registry;
+mod test_components;
 //mod shard;
 //mod shard_registry;
 

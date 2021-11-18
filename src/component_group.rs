@@ -165,7 +165,7 @@ macro_rules! impl_component_tuple {
 mod test {
     extern crate std;
     use super::*;
-    use crate::tests::*;
+    use crate::test_components::*;
 
     #[test]
     fn test_component_group_as_sorted_pointers() {
@@ -429,4 +429,48 @@ mod private {
     impl_sealed_component_tuples!(
         T16, T15, T14, T13, T12, T11, T10, T9, T8, T7, T6, T5, T4, T3, T2, T1
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Component;
+    struct Position;
+    struct Rotation;
+    struct Velocity;
+    impl Component for Position {
+        const NAME: &'static str = "Position";
+    }
+    impl Component for Rotation {
+        const NAME: &'static str = "Rotation";
+    }
+    impl Component for Velocity {
+        const NAME: &'static str = "Velocity";
+    }
+
+    #[test]
+    fn test_component_group_len() {
+        fn test_group_len<'c, G: ComponentGroup<'c>>(expected_len: usize) {
+            assert_eq!(G::DESCRIPTOR.archetype().len() as usize, expected_len);
+        }
+
+        test_group_len::<Position>(1);
+        test_group_len::<(Position, Rotation)>(2);
+        test_group_len::<(Position, Rotation, Velocity)>(3);
+    }
+
+    #[test]
+    fn test_component_group_descriptor() {
+        #[cfg(test)]
+        extern crate std;
+
+        assert!(<Position as ComponentGroup>::DESCRIPTOR.is_valid());
+        assert!(<(Position, Position) as ComponentGroup>::DESCRIPTOR.is_valid() == false);
+        assert!(<(Position, Rotation) as ComponentGroup>::DESCRIPTOR.is_valid());
+        std::println!(
+            "{:#?}",
+            <(Position, Rotation) as ComponentGroup>::DESCRIPTOR
+        );
+    }
+
 }
