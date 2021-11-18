@@ -1,13 +1,14 @@
+use crate::archetype_descriptor::ArchetypeDescriptor;
+use crate::*;
 use alloc::alloc::{alloc, dealloc, Layout};
 use core::mem::{align_of, size_of};
-use crate::*;
-use crate::archetype_descriptor::ArchetypeDescriptor;
 
+mod data_access;
+mod metadata;
 #[cfg(test)]
 mod tests;
-mod metadata;
-mod data_access;
 
+pub use metadata::*;
 
 use metadata::*;
 
@@ -30,7 +31,7 @@ impl Archetype {
             pointers: [core::ptr::null_mut(); MAX_COMPONENTS_PER_ENTITY],
             entity_metadata: core::ptr::null_mut(),
             entity_count: 0,
-            capacity: 0
+            capacity: 0,
         }
     }
 
@@ -51,12 +52,18 @@ impl Archetype {
         // Allocate
         if capacity > 0 && capacity <= MAX_ENTITIES_PER_ARCHETYPE {
             unsafe {
-                let layout = Layout::from_size_align_unchecked(size_of::<EntityMetadata>(), align_of::<EntityMetadata>());
+                let layout = Layout::from_size_align_unchecked(
+                    size_of::<EntityMetadata>(),
+                    align_of::<EntityMetadata>(),
+                );
                 archetype.entity_metadata = alloc(layout) as *mut EntityMetadata;
                 assert_ne!(archetype.entity_metadata, core::ptr::null_mut());
 
                 for (index, component) in archetype.descriptor.components().iter().enumerate() {
-                    let layout = Layout::from_size_align_unchecked(component.size as usize, component.align as usize);
+                    let layout = Layout::from_size_align_unchecked(
+                        component.size as usize,
+                        component.align as usize,
+                    );
                     archetype.pointers[index] = alloc(layout);
                     assert_ne!(archetype.pointers[index], core::ptr::null_mut());
                 }
@@ -65,12 +72,20 @@ impl Archetype {
         }
         archetype
     }
+
+    pub fn descriptor(&self) -> &ArchetypeDescriptor {
+        &self.descriptor
+    }
 }
 
 impl Drop for Archetype {
     fn drop(&mut self) {
         // Archetype is empty if there is no capacity.
-        if self.capacity == 0 { return }
-        unsafe { self.dealloc(); }
+        if self.capacity == 0 {
+            return;
+        }
+        unsafe {
+            self.dealloc();
+        }
     }
 }

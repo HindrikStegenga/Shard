@@ -85,6 +85,18 @@ impl ArchetypeDescriptor {
             }
         }
     }
+
+    /// Returns whether the archetype descriptor has a given component type.
+    pub fn has_component<C: Component>(&self) -> bool {
+        return match self
+            .components()
+            .binary_search_by_key(&C::ID, |e| e.component_type_id)
+        {
+            Ok(_) => true,
+            Err(_) => false,
+        };
+    }
+
     /// Get a the archetype descriptor's archetype id.
     pub const fn archetype_id(&self) -> ArchetypeId {
         self.archetype_id

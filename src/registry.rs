@@ -1,6 +1,8 @@
 use alloc::vec::Vec;
 use core::borrow::Borrow;
 
+use crate::archetype::EntityMetadata;
+use crate::archetype_registry::ArchetypeRegistry;
 use crate::component_group_descriptor::ComponentGroupDescriptor;
 use crate::{
     component_descriptor::ComponentDescriptor, component_group::ComponentGroup,
@@ -9,14 +11,14 @@ use crate::{
 
 pub struct Registry {
     entities: EntityRegistry,
-
+    archetypes: ArchetypeRegistry,
 }
 
 impl Default for Registry {
     fn default() -> Self {
         Self {
             entities: EntityRegistry::default(),
-
+            archetypes: ArchetypeRegistry::default(),
         }
     }
 }
@@ -27,28 +29,35 @@ impl Registry {
             return Err(components);
         }
 
-        let entity_entry = match self.entities.create_entity() {
+        let mut entity_entry = match self.entities.create_entity() {
             Some(v) => v,
             None => return Err(components),
         };
-        // let (archetype, shard) = match self.shards.get_or_alloc_shard_from_group::<G>() {
-        //     Some(v) => v,
-        //     None => {
-        //         let entity = entity_entry.entity();
-        //         self.entities.destroy_entity(entity);
-        //         return Err(components);
-        //     }
-        // };
-        //let entity = self.entities.create_entity(0, 0, G::LENGTH);
-        todo!()
+        let (archetype_index, archetype) = match self
+            .archetypes
+            .find_or_create_archetype(G::DESCRIPTOR.archetype())
+        {
+            Some(v) => v,
+            None => return Err(components),
+        };
+        let metadata = EntityMetadata::new(entity_entry.entity());
+        let idx_in_archetype = unsafe { archetype.push_entity_unchecked(metadata, components) };
+        entity_entry.set_index_in_archetype(idx_in_archetype);
+        entity_entry.set_archetype_index(archetype_index);
+        Ok(entity_entry.entity())
     }
 
-    pub fn remove_entity(&mut self, entity: Entity) -> bool {
+    pub fn destroy_entity(&mut self, entity: Entity) -> bool {
         todo!()
     }
 
     pub fn has_component<C: Component>(&self, entity: Entity) -> bool {
-        todo!()
+        let entry = match self.entities.get_entity_entry(entity) {
+            None => return false,
+            Some(v) => v,
+        };
+        let archetype = &self.archetypes[entry.archetype_index()];
+        archetype.descriptor().has_component::<C>()
     }
 
     pub fn get_component<C: Component>(&self, entity: Entity) -> Option<&C> {

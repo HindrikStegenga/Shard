@@ -15,6 +15,13 @@ impl Default for EntityMetadata {
 }
 
 impl EntityMetadata {
+    /// Creates a new metadata pointing to the given entity.
+    /// The 8 metadata bits are set to 0.
+    pub(crate) fn new(entity: Entity) -> Self {
+        Self {
+            value: unsafe { Entity::new(entity.index(), 0) },
+        }
+    }
 
     /// Get a reference to the entity metadata's value.
     pub(crate) fn entity(&self) -> Entity {

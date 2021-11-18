@@ -219,9 +219,60 @@ mod test {
     #[test]
     fn test_component_group_slices() {
         unsafe {
-            let mut slice_a = [A::default(), A::default(), A::default(), A::default(),A::default(), A::default(), A::default(), A::default(),A::default(), A::default(), A::default(), A::default(),A::default(), A::default(), A::default(), A::default()];
-            let mut slice_b = [B::default(), B::default(), B::default(), B::default(), B::default(), B::default(), B::default(), B::default(), B::default(), B::default(), B::default(), B::default(), B::default(), B::default(), B::default(), B::default()];
-            let mut slice_c = [C::default(), C::default(), C::default(), C::default(), C::default(), C::default(), C::default(), C::default(), C::default(), C::default(), C::default(), C::default(), C::default(), C::default(), C::default(), C::default()];
+            let mut slice_a = [
+                A::default(),
+                A::default(),
+                A::default(),
+                A::default(),
+                A::default(),
+                A::default(),
+                A::default(),
+                A::default(),
+                A::default(),
+                A::default(),
+                A::default(),
+                A::default(),
+                A::default(),
+                A::default(),
+                A::default(),
+                A::default(),
+            ];
+            let mut slice_b = [
+                B::default(),
+                B::default(),
+                B::default(),
+                B::default(),
+                B::default(),
+                B::default(),
+                B::default(),
+                B::default(),
+                B::default(),
+                B::default(),
+                B::default(),
+                B::default(),
+                B::default(),
+                B::default(),
+                B::default(),
+                B::default(),
+            ];
+            let mut slice_c = [
+                C::default(),
+                C::default(),
+                C::default(),
+                C::default(),
+                C::default(),
+                C::default(),
+                C::default(),
+                C::default(),
+                C::default(),
+                C::default(),
+                C::default(),
+                C::default(),
+                C::default(),
+                C::default(),
+                C::default(),
+                C::default(),
+            ];
 
             let mut pointers = [core::ptr::null_mut::<u8>(); MAX_COMPONENTS_PER_ENTITY];
             pointers[0] = slice_a.as_mut_ptr() as *mut u8;
@@ -467,10 +518,5 @@ mod tests {
         assert!(<Position as ComponentGroup>::DESCRIPTOR.is_valid());
         assert!(<(Position, Position) as ComponentGroup>::DESCRIPTOR.is_valid() == false);
         assert!(<(Position, Rotation) as ComponentGroup>::DESCRIPTOR.is_valid());
-        std::println!(
-            "{:#?}",
-            <(Position, Rotation) as ComponentGroup>::DESCRIPTOR
-        );
     }
-
 }

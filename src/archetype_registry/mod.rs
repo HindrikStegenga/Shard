@@ -3,6 +3,7 @@ mod sorted_archetype_key;
 mod tests;
 
 use alloc::vec::*;
+use core::ops::{Index, IndexMut};
 use sorted_archetype_key::*;
 
 use crate::archetype::Archetype;
@@ -83,7 +84,7 @@ impl ArchetypeRegistry {
     pub(crate) fn find_or_create_archetype(
         &mut self,
         archetype_descriptor: &ArchetypeDescriptor,
-    ) -> Option<&mut Archetype> {
+    ) -> Option<(u16, &mut Archetype)> {
         let len = archetype_descriptor.len() as usize;
         if len > MAX_COMPONENTS_PER_ENTITY || !archetype_descriptor.is_valid() {
             return None;
@@ -91,10 +92,11 @@ impl ArchetypeRegistry {
         return match self.sorted_mappings[len]
             .binary_search_by_key(&archetype_descriptor.archetype_id(), |e| e.id)
         {
-            Ok(found_index) => Some(
+            Ok(found_index) => Some((
+                self.sorted_mappings[len][found_index].archetype_index,
                 &mut self.archetypes
                     [self.sorted_mappings[len][found_index].archetype_index as usize],
-            ),
+            )),
             Err(insertion_index) => {
                 if self.archetypes.len() >= MAX_ARCHETYPE_COUNT {
                     return None;
@@ -110,8 +112,25 @@ impl ArchetypeRegistry {
                 };
                 self.archetypes.push(archetype);
                 self.sorted_mappings[len].insert(insertion_index, key);
-                Some(self.archetypes.last_mut().unwrap())
+                Some((
+                    self.archetypes.len() as u16 - 1,
+                    self.archetypes.last_mut().unwrap(),
+                ))
             }
         };
+    }
+}
+
+impl Index<u16> for ArchetypeRegistry {
+    type Output = Archetype;
+
+    fn index(&self, index: u16) -> &Self::Output {
+        &self.archetypes[index as usize]
+    }
+}
+
+impl IndexMut<u16> for ArchetypeRegistry {
+    fn index_mut(&mut self, index: u16) -> &mut Self::Output {
+        &mut self.archetypes[index as usize]
     }
 }
