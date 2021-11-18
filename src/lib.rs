@@ -3,8 +3,8 @@
 extern crate alloc;
 
 mod archetype;
-mod archetype_id;
 mod archetype_descriptor;
+mod archetype_id;
 mod archetype_registry;
 mod component;
 mod component_descriptor;
@@ -17,8 +17,6 @@ mod entity_registry;
 mod fnv1a;
 mod registry;
 mod test_components;
-//mod shard;
-//mod shard_registry;
 
 pub use archetype_id::ArchetypeId;
 pub use component::Component;
