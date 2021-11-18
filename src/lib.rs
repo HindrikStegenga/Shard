@@ -3,8 +3,9 @@
 extern crate alloc;
 
 mod archetype;
-mod archetype_descriptor;
 mod archetype_id;
+mod archetype_descriptor;
+mod archetype_registry;
 mod component;
 mod component_descriptor;
 mod component_group;
