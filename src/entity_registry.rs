@@ -107,7 +107,7 @@ impl EntityRegistry {
         return if self.next_free_slot == INVALID_ENTITY_HANDLE_VALUE {
             // Linked list of free slots is empty, we need to allocate a new entity.
             self.entities.push(EntityEntry {
-                values: Default::default(),
+                values: unsafe { Entity::new(0, 0) },
                 arch_idx: 0,
             });
             let idx = self.entities.len() - 1;

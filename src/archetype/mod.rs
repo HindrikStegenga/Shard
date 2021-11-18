@@ -85,6 +85,7 @@ impl Drop for Archetype {
             return;
         }
         unsafe {
+            self.drop_entities();
             self.dealloc();
         }
     }

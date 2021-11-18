@@ -1,14 +1,36 @@
 use super::Archetype;
 use crate::archetype::metadata::EntityMetadata;
 use crate::component_group::*;
-use crate::{
-    DEFAULT_ARCHETYPE_ALLOCATION_SIZE, MAX_COMPONENTS_PER_ENTITY, MAX_ENTITIES_PER_ARCHETYPE,
-};
+use crate::{Component, DEFAULT_ARCHETYPE_ALLOCATION_SIZE, MAX_COMPONENTS_PER_ENTITY, MAX_ENTITIES_PER_ARCHETYPE};
 use alloc::alloc::{alloc, dealloc, realloc, Layout};
+use core::f32::consts::E;
 use core::mem::{align_of, size_of};
 use core::ptr::{slice_from_raw_parts, slice_from_raw_parts_mut};
 
 impl Archetype {
+
+    /// Returns a reference to a specific component.
+    /// # Safety:
+    /// - Component type [`C`] must be present in the archetype
+    /// - panics otherwise.
+    pub(crate) unsafe fn get_component_unchecked<C: Component>(&self, index: u32) -> &C {
+        match self.descriptor.components().binary_search_by_key(&C::ID, |e|e.component_type_id) {
+            Ok(idx) => &*(self.pointers[idx] as *mut C).offset(index as isize),
+            Err(_) => panic!()
+        }
+    }
+
+    /// Returns a mutable reference to a specific component.
+    /// # Safety:
+    /// - Component type [`C`] must be present in the archetype
+    /// - panics otherwise.
+    pub(crate) unsafe fn get_component_unchecked_mut<C: Component>(&mut self, index: u32) -> &mut C {
+        match self.descriptor.components().binary_search_by_key(&C::ID, |e|e.component_type_id) {
+            Ok(idx) => &mut *(self.pointers[idx] as *mut C).offset(index as isize),
+            Err(_) => panic!()
+        }
+    }
+
     /// Returns a tuple of component slices to the archetype's data.
     /// # Safety:
     /// - Must be called exactly with the component group contained in the archetype.
@@ -166,6 +188,60 @@ impl Archetype {
         }
         *self.entity_metadata_mut().get_unchecked_mut(index as usize) = metadata;
         core::mem::forget(entity);
+    }
+
+    /// Swaps the entity at [`index`] and the last entity and drops the now-last entity.
+    /// This effectively reduces the size of the archetype by 1, dropping the entity at index.
+    /// And moving the previously last entity to the position at index.
+    /// If [`index`] is the last element, simply drops it instead without any swaps occurring.
+    /// Returns true if a swap occurred, or false if not.
+    /// # Safety:
+    /// - [`index`] must be smaller than the amount of entities in the archetype.
+    pub(crate) unsafe fn swap_drop(&mut self, index: u32) -> bool {
+        debug_assert!(index < self.entity_count);
+        if index == self.entity_count - 1 {
+            // Is the last one, so just drop it.
+            self.drop_entity(index);
+            self.entity_count -= 1;
+            false
+        } else {
+            self.swap_entities(index, self.entity_count - 1);
+            self.drop_entity(self.entity_count - 1);
+            self.entity_count -= 1;
+            true
+        }
+
+    }
+
+    /// Swaps the entities at the provided positions.
+    /// # Safety:
+    /// - [`first`] must be smaller than the amount of entities in the archetype.
+    /// - [`second`] must be smaller than the amount of entities in the archetype.
+    /// - [`first`] must not be equal to [`last`].
+    pub(crate) unsafe fn swap_entities(&mut self, first: u32, second: u32) {
+        for (idx, descriptor) in self.descriptor.components().iter().enumerate() {
+            let ptr_first = self.pointers[idx].offset(first as isize * descriptor.size as isize);
+            let ptr_second = self.pointers[idx].offset(second as isize * descriptor.size as isize);
+            core::ptr::swap_nonoverlapping(ptr_first, ptr_second, descriptor.size as usize);
+        }
+        self.entity_metadata_mut().swap(first as usize, second as usize);
+    }
+
+    /// Calls drop on the entity at [`index`].
+    /// # Safety:
+    /// - [`index`] must be smaller than the amount of entities in the archetype.
+    pub(crate) unsafe fn drop_entity(&mut self, index: u32) {
+        for (idx, descriptor) in self.descriptor.components().iter().enumerate() {
+            (descriptor.fns.drop_handler)(self.pointers[idx].offset(index as isize * descriptor.size as isize), 1);
+        }
+    }
+
+    /// Drops all the entities in the archetype.
+    /// Does not deallocate the memory.
+    pub(crate) unsafe fn drop_entities(&mut self) {
+        for (idx, descriptor) in self.descriptor.components().iter().enumerate() {
+            (descriptor.fns.drop_handler)(self.pointers[idx], self.entity_count as usize);
+        }
     }
 }
 
