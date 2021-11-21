@@ -9,45 +9,50 @@ use crate::{
 /// MEMORY_LAYOUTS:
 /// Valid:      |version: u8|idx_in_arch: u24|arch_idx: u16|
 /// Invalid:    |version: u8|next_fr_slt: u24|INV_ARCH: u16|
-#[repr(packed)]
+#[repr(C, align(2))]
 pub(crate) struct EntityEntry {
-    values: Entity,
-    arch_idx: u16,
+    values: [u8; 6],
 }
 
 impl EntityEntry {
     #[inline(always)]
     pub fn version(&self) -> u8 {
-        self.values.version()
+        self.values[0]
     }
     #[inline(always)]
     pub fn set_version(&mut self, version: u8) {
-        self.values.set_version(version)
+        self.values[0] = version;
     }
     #[inline(always)]
     pub fn is_valid(&self) -> bool {
-        self.arch_idx != INVALID_ARCHETYPE_INDEX
+        // Guaranteed to be properly aligned.
+        unsafe { *(self.values.as_ptr().offset(4) as *const u8 as *const u16) != INVALID_ARCHETYPE_INDEX }
     }
     #[inline(always)]
     pub fn set_invalid(&mut self) {
-        self.arch_idx = INVALID_ARCHETYPE_INDEX
+        // Guaranteed to be properly aligned.
+        unsafe { *(self.values.as_ptr().offset(4) as *mut u8 as *mut u16) = INVALID_ARCHETYPE_INDEX }
     }
 
     #[inline(always)]
     pub fn set_archetype_index(&mut self, archetype_index: u16) {
-        self.arch_idx = archetype_index;
+        // Guaranteed to be properly aligned.
+        unsafe { *(self.values.as_ptr().offset(4) as *mut u8 as *mut u16) = archetype_index }
     }
     #[inline(always)]
     pub fn archetype_index(&self) -> u16 {
-        self.arch_idx
+         unsafe { *(self.values.as_ptr().offset(4) as *const u16) }
     }
     #[inline(always)]
     pub fn index_in_archetype(&self) -> u32 {
-        self.values.index()
+        unsafe { (( *(self.values.as_ptr() as *const u32)) & 0x00FFFFFF) >> 8 }
     }
     #[inline(always)]
     pub fn set_index_in_archetype(&mut self, index: u32) {
-        unsafe { self.values.set_index(index) }
+        let v = self.values[0];
+        let index = index << 8;
+        unsafe { ( *(self.values.as_ptr() as *mut u32)) = index; }
+        self.values[0] = v;
     }
 }
 
@@ -107,13 +112,10 @@ impl EntityRegistry {
 
         return if self.next_free_slot == INVALID_ENTITY_HANDLE_VALUE {
             // Linked list of free slots is empty, we need to allocate a new entity.
-            self.entities.push(EntityEntry {
-                values: unsafe { Entity::new(0, 0) },
-                arch_idx: 0,
-            });
+            self.entities.push(EntityEntry { values: [0; 6]});
             let idx = self.entities.len() - 1;
             Some(ValidEntityRef {
-                entity: unsafe { Entity::new(idx as u32, 0) },
+                entity: unsafe { Entity::new_unchecked(idx as u32, 0) },
                 entry: &mut self.entities[idx],
             })
         } else {
@@ -121,7 +123,7 @@ impl EntityRegistry {
             let entry = &mut self.entities[old_slot_index as usize];
             self.next_free_slot = entry.index_in_archetype();
             Some(ValidEntityRef {
-                entity: unsafe { Entity::new(old_slot_index, entry.version()) },
+                entity: unsafe { Entity::new_unchecked(old_slot_index, entry.version()) },
                 entry,
             })
         };
@@ -143,18 +145,20 @@ impl EntityRegistry {
 
         return if self.next_free_slot == INVALID_ENTITY_HANDLE_VALUE {
             // Linked list of free slots is empty, we need to allocate a new entity.
-            self.entities.push(EntityEntry {
-                values: unsafe { Entity::new(index_in_archetype, 0) },
-                arch_idx: archetype_index,
-            });
-            Some(unsafe { Entity::new((self.entities.len() - 1) as u32, 0) })
+            let mut entry = EntityEntry {
+                values: [0; 6]
+            };
+            entry.set_archetype_index(archetype_index);
+            entry.set_index_in_archetype(index_in_archetype);
+            self.entities.push(entry);
+            Some(unsafe { Entity::new_unchecked((self.entities.len() - 1) as u32, 0) })
         } else {
             let old_slot_index = self.next_free_slot;
             let entry = &mut self.entities[old_slot_index as usize];
             self.next_free_slot = entry.index_in_archetype();
             entry.set_index_in_archetype(index_in_archetype);
             entry.set_archetype_index(archetype_index);
-            Some(unsafe { Entity::new(old_slot_index, entry.version()) })
+            Some(unsafe { Entity::new_unchecked(old_slot_index, entry.version()) })
         };
     }
 

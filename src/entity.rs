@@ -15,7 +15,7 @@ impl Default for Entity {
 
 impl Entity {
     pub const INVALID: Entity =
-        unsafe { Entity::new(MAX_ENTITY_HANDLE_VALUE, MAX_ENTITY_VERSION_VALUE) };
+        unsafe { Entity::new_unchecked(MAX_ENTITY_HANDLE_VALUE, MAX_ENTITY_VERSION_VALUE) };
 
     /// Constructs a new Entity from a raw u32.
     /// The higher/leftmost 24 bits as index, the lower/rightmost 8 bits are used as version.
@@ -41,9 +41,7 @@ impl Entity {
     /// # Safety
     /// - index MUST be lower than 2^24!
     #[inline(always)]
-    pub const unsafe fn new(index: u32, version: u8) -> Entity {
-        //assert!(index < 2u32.pow(ENTITY_INDEX_BITS as u32), "Entity index must be < 2^24!");
-
+    pub const unsafe fn new_unchecked(index: u32, version: u8) -> Entity {
         Entity {
             handle: (index << ENTITY_VERSION_BITS) | version as u32,
         }
@@ -92,7 +90,7 @@ impl Entity {
 
 #[test]
 fn test_entity_handles() {
-    let mut entity = unsafe { Entity::new(8_000_000, 255) };
+    let mut entity = unsafe { Entity::new_unchecked(8_000_000, 255) };
     assert_eq!(entity.index(), 8_000_000);
     assert_eq!(entity.version(), 255);
 
