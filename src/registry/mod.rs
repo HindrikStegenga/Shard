@@ -57,11 +57,15 @@ impl Registry {
         let mut archetype = &mut self.archetypes[entry.archetype_index()];
         let index_in_archetype = entry.index_in_archetype();
         unsafe {
-            if archetype.swap_drop(index_in_archetype) {
+            if archetype.swap_drop_unchecked(index_in_archetype) {
                 // A swap was needed, so we need to update the index_in_archetype of the entry that it was swapped with.
                 // We retrieve the entity handle using the metadata, which is now at the old entity's position.
-                let swapped_entity = archetype.entity_metadata()[index_in_archetype as usize].entity();
-                self.entities.get_entity_entry_mut(swapped_entity).unwrap().set_index_in_archetype(index_in_archetype);
+                let swapped_entity =
+                    archetype.entity_metadata()[index_in_archetype as usize].entity();
+                self.entities
+                    .get_entity_entry_mut(swapped_entity)
+                    .unwrap()
+                    .set_index_in_archetype(index_in_archetype);
             }
         };
         self.entities.destroy_entity(entity);
@@ -83,8 +87,10 @@ impl Registry {
             Some(v) => v,
         };
         unsafe {
-            self.archetypes[entry.archetype_index()].get_component_unchecked::<C>(entry.index_in_archetype())
-        }.into()
+            self.archetypes[entry.archetype_index()]
+                .get_component_unchecked::<C>(entry.index_in_archetype())
+        }
+        .into()
     }
 
     pub fn get_component_mut<C: Component>(&mut self, entity: Entity) -> Option<&mut C> {
@@ -93,8 +99,10 @@ impl Registry {
             Some(v) => v,
         };
         unsafe {
-            self.archetypes[entry.archetype_index()].get_component_unchecked_mut::<C>(entry.index_in_archetype())
-        }.into()
+            self.archetypes[entry.archetype_index()]
+                .get_component_unchecked_mut::<C>(entry.index_in_archetype())
+        }
+        .into()
     }
 
     pub fn add_component<C: Component>(&mut self, entity: Entity, component: C) -> Result<(), C> {
