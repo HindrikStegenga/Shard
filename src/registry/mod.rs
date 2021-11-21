@@ -1,13 +1,7 @@
-use alloc::vec::Vec;
-use core::borrow::Borrow;
-
 use crate::archetype::EntityMetadata;
 use crate::archetype_registry::ArchetypeRegistry;
 use crate::component_group_descriptor::ComponentGroupDescriptor;
-use crate::{
-    component_descriptor::ComponentDescriptor, component_group::ComponentGroup,
-    entity_registry::EntityRegistry, Component, Entity,
-};
+use crate::{component_group::ComponentGroup, entity_registry::EntityRegistry, Component, Entity};
 
 mod tests;
 

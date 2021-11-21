@@ -1,6 +1,6 @@
 use crate::archetype_descriptor::ArchetypeDescriptor;
 use crate::*;
-use alloc::alloc::{alloc, dealloc, Layout};
+use alloc::alloc::{alloc, Layout};
 use core::mem::{align_of, size_of};
 
 mod data_access;
@@ -8,9 +8,7 @@ mod metadata;
 #[cfg(test)]
 mod tests;
 
-pub use metadata::*;
-
-use metadata::*;
+pub(crate) use metadata::*;
 
 #[derive(Debug)]
 pub(crate) struct Archetype {
@@ -24,6 +22,7 @@ pub(crate) struct Archetype {
 impl Archetype {
     /// Creates an archetype without memory allocated for it.
     /// Panics if the provided archetype descriptor is invalid.
+    #[allow(dead_code)]
     pub fn new(archetype_descriptor: &ArchetypeDescriptor) -> Archetype {
         assert!(archetype_descriptor.is_valid());
         Self {

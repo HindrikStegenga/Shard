@@ -19,11 +19,13 @@ impl ArchetypeDescriptor {
     /// Returns true if it is a valid archetype.
     /// A valid archetype has a length larger than 0 and smaller than [`MAX_COMPONENTS_PER_ENTITY`].
     /// It also contains no duplicate components.
+    #[inline(always)]
     pub const fn is_valid(&self) -> bool {
         self.archetype_id.is_valid()
     }
 
     /// Creates a new archetype descriptor with the given id, length and components.
+    #[inline(always)]
     pub const fn new(
         archetype_id: ArchetypeId,
         len: u8,
@@ -63,6 +65,7 @@ impl ArchetypeDescriptor {
 
     /// Returns a new archetype with the given component type added to it.
     /// Returns none if the current archetype already contains the component type or it is full.
+    #[allow(dead_code)]
     pub(crate) fn add_component<C: Component>(&self) -> Option<ArchetypeDescriptor> {
         if self.len as usize == MAX_COMPONENTS_PER_ENTITY || self.len == 1 {
             return None; // Archetype is full.
@@ -87,6 +90,7 @@ impl ArchetypeDescriptor {
     }
 
     /// Returns whether the archetype descriptor has a given component type.
+    // TODO: Check if this can be constified somehow?
     pub fn has_component<C: Component>(&self) -> bool {
         return match self
             .components()
@@ -98,16 +102,28 @@ impl ArchetypeDescriptor {
     }
 
     /// Get a the archetype descriptor's archetype id.
+    #[inline(always)]
     pub const fn archetype_id(&self) -> ArchetypeId {
         self.archetype_id
     }
 
     /// Get the archetype descriptor's component count.
-    pub fn len(&self) -> u8 {
+    #[inline(always)]
+    pub const fn len(&self) -> u8 {
         self.len
     }
 
     /// Get a reference to the archetype descriptor's components.
+    /// This version is const but unsafe, as length is NOT accounted for.
+    #[inline(always)]
+    pub const unsafe fn components_unchecked(
+        &self,
+    ) -> &[ComponentDescriptor; MAX_COMPONENTS_PER_ENTITY] {
+        &self.components
+    }
+
+    /// Get a reference to the archetype descriptor's components.
+    #[inline(always)]
     pub fn components(&self) -> &[ComponentDescriptor] {
         &self.components[0..self.len as usize]
     }

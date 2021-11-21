@@ -1,14 +1,13 @@
-use crate::archetype::Archetype;
 use crate::archetype::metadata::EntityMetadata;
+use crate::archetype::Archetype;
 use crate::archetype_descriptor::ArchetypeDescriptor;
 use crate::component_group::ComponentGroup;
-use crate::{Entity, MAX_ENTITIES_PER_ARCHETYPE};
 use crate::test_components::*;
-
+use crate::{Entity, MAX_ENTITIES_PER_ARCHETYPE};
 
 #[test]
 fn test_archetype_constructors() {
-    let descriptor : &ArchetypeDescriptor = <(A, B) as ComponentGroup>::DESCRIPTOR.archetype();
+    let descriptor: &ArchetypeDescriptor = <(A, B) as ComponentGroup>::DESCRIPTOR.archetype();
     // Empty constructor should not panic
     let _ = Archetype::new(descriptor);
     Archetype::with_capacity(descriptor, 0);
@@ -24,7 +23,8 @@ fn test_archetype_slices() {
         let mut archetype = Archetype::new(descriptor);
         let meta = EntityMetadata::default();
 
-        let _idx = archetype.push_entity_unchecked(meta, (A::default(), B::default(), C::default()));
+        let _idx =
+            archetype.push_entity_unchecked(meta, (A::default(), B::default(), C::default()));
         assert_eq!(archetype.entity_count, 1);
         assert_eq!(meta, archetype.entity_metadata().as_ref()[0]);
 
@@ -65,48 +65,84 @@ fn test_archetype_get_components() {
 
         let idx = archetype.push_entity_unchecked(meta, (A::default(), B::default(), C::default()));
         assert_eq!(*archetype.get_component_unchecked::<A>(idx), A::default());
-        assert_eq!(*archetype.get_component_unchecked_mut::<B>(idx), B::default())
+        assert_eq!(
+            *archetype.get_component_unchecked_mut::<B>(idx),
+            B::default()
+        )
     }
 }
 
 #[test]
 fn test_archetype_swap_entities() {
     unsafe {
-        unsafe {
-            let descriptor = <(A, B) as ComponentGroup<'_>>::DESCRIPTOR.archetype();
+        let descriptor = <(A, B) as ComponentGroup<'_>>::DESCRIPTOR.archetype();
 
-            let mut archetype = Archetype::new(descriptor);
-            let meta1 = EntityMetadata::new(Entity::from_raw(1));
-            let meta2 = EntityMetadata::new(Entity::from_raw(2));
+        let mut archetype = Archetype::new(descriptor);
+        let meta1 = EntityMetadata::new(Entity::from_raw(1));
+        let meta2 = EntityMetadata::new(Entity::from_raw(2));
 
-            let idx1 = archetype.push_entity_unchecked(meta1, (A { _data: 1 }, B { _data: 3 }));
-            let idx2 = archetype.push_entity_unchecked(meta2, (A { _data: 2 }, B { _data: 4 }));
-            assert_eq!(*archetype.get_component_unchecked::<A>(idx1), A { _data: 1 });
-            assert_eq!(*archetype.get_component_unchecked_mut::<B>(idx1), B { _data: 3 });
-            assert_eq!(*archetype.get_component_unchecked::<A>(idx2), A { _data: 2 });
-            assert_eq!(*archetype.get_component_unchecked_mut::<B>(idx2), B { _data: 4 });
+        let idx1 = archetype.push_entity_unchecked(meta1, (A { _data: 1 }, B { _data: 3 }));
+        let idx2 = archetype.push_entity_unchecked(meta2, (A { _data: 2 }, B { _data: 4 }));
+        assert_eq!(
+            *archetype.get_component_unchecked::<A>(idx1),
+            A { _data: 1 }
+        );
+        assert_eq!(
+            *archetype.get_component_unchecked_mut::<B>(idx1),
+            B { _data: 3 }
+        );
+        assert_eq!(
+            *archetype.get_component_unchecked::<A>(idx2),
+            A { _data: 2 }
+        );
+        assert_eq!(
+            *archetype.get_component_unchecked_mut::<B>(idx2),
+            B { _data: 4 }
+        );
 
-            assert_eq!(archetype.entity_metadata()[idx1 as usize], meta1);
-            assert_eq!(archetype.entity_metadata()[idx2 as usize], meta2);
+        assert_eq!(archetype.entity_metadata()[idx1 as usize], meta1);
+        assert_eq!(archetype.entity_metadata()[idx2 as usize], meta2);
 
-            archetype.swap_entities(idx1, idx2);
-            assert_eq!(*archetype.get_component_unchecked::<A>(idx2), A { _data: 1 });
-            assert_eq!(*archetype.get_component_unchecked_mut::<B>(idx2), B { _data: 3 });
-            assert_eq!(*archetype.get_component_unchecked::<A>(idx1), A { _data: 2 });
-            assert_eq!(*archetype.get_component_unchecked_mut::<B>(idx1), B { _data: 4 });
+        archetype.swap_entities(idx1, idx2);
+        assert_eq!(
+            *archetype.get_component_unchecked::<A>(idx2),
+            A { _data: 1 }
+        );
+        assert_eq!(
+            *archetype.get_component_unchecked_mut::<B>(idx2),
+            B { _data: 3 }
+        );
+        assert_eq!(
+            *archetype.get_component_unchecked::<A>(idx1),
+            A { _data: 2 }
+        );
+        assert_eq!(
+            *archetype.get_component_unchecked_mut::<B>(idx1),
+            B { _data: 4 }
+        );
 
+        assert_eq!(archetype.entity_metadata()[idx2 as usize], meta1);
+        assert_eq!(archetype.entity_metadata()[idx1 as usize], meta2);
 
-            assert_eq!(archetype.entity_metadata()[idx2 as usize], meta1);
-            assert_eq!(archetype.entity_metadata()[idx1 as usize], meta2);
+        archetype.swap_entities(idx1, idx2);
+        assert_eq!(
+            *archetype.get_component_unchecked::<A>(idx1),
+            A { _data: 1 }
+        );
+        assert_eq!(
+            *archetype.get_component_unchecked_mut::<B>(idx1),
+            B { _data: 3 }
+        );
+        assert_eq!(
+            *archetype.get_component_unchecked::<A>(idx2),
+            A { _data: 2 }
+        );
+        assert_eq!(
+            *archetype.get_component_unchecked_mut::<B>(idx2),
+            B { _data: 4 }
+        );
 
-            archetype.swap_entities(idx1, idx2);
-            assert_eq!(*archetype.get_component_unchecked::<A>(idx1), A { _data: 1 });
-            assert_eq!(*archetype.get_component_unchecked_mut::<B>(idx1), B { _data: 3 });
-            assert_eq!(*archetype.get_component_unchecked::<A>(idx2), A { _data: 2 });
-            assert_eq!(*archetype.get_component_unchecked_mut::<B>(idx2), B { _data: 4 });
-
-            assert_eq!(archetype.entity_metadata()[idx1 as usize], meta1);
-            assert_eq!(archetype.entity_metadata()[idx2 as usize], meta2);
-        }
+        assert_eq!(archetype.entity_metadata()[idx1 as usize], meta1);
+        assert_eq!(archetype.entity_metadata()[idx2 as usize], meta2);
     }
 }

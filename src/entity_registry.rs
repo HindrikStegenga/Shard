@@ -1,8 +1,8 @@
 use alloc::vec::Vec;
 
 use crate::{
-    Entity, ENTITIES_PER_SHARD, INVALID_ARCHETYPE_INDEX, INVALID_ENTITY_HANDLE_VALUE,
-    MAX_COMPONENTS_PER_ENTITY, MAX_ENTITIES_PER_ARCHETYPE, MAX_ENTITY_HANDLE_VALUE,
+    Entity, INVALID_ARCHETYPE_INDEX, INVALID_ENTITY_HANDLE_VALUE, MAX_ENTITIES_PER_ARCHETYPE,
+    MAX_ENTITY_HANDLE_VALUE,
 };
 
 /// Represents entity reference to the archetype + index + Version.
@@ -94,6 +94,7 @@ impl Default for EntityRegistry {
 
 impl EntityRegistry {
     /// Returns true if there is space left to store a new entity record.
+    #[allow(dead_code)]
     pub(crate) fn can_create_new_entity(&self) -> bool {
         !(self.entities.len() >= MAX_ENTITY_HANDLE_VALUE as usize)
     }
@@ -118,7 +119,7 @@ impl EntityRegistry {
         } else {
             let old_slot_index = self.next_free_slot;
             let entry = &mut self.entities[old_slot_index as usize];
-            self.next_free_slot = unsafe { entry.index_in_archetype() };
+            self.next_free_slot = entry.index_in_archetype();
             Some(ValidEntityRef {
                 entity: unsafe { Entity::new(old_slot_index, entry.version()) },
                 entry,
@@ -127,6 +128,7 @@ impl EntityRegistry {
     }
 
     /// Registers a new entity into the registry.
+    #[allow(dead_code)]
     pub(crate) fn create_entity_with(
         &mut self,
         archetype_index: u16,
@@ -148,8 +150,8 @@ impl EntityRegistry {
             Some(unsafe { Entity::new((self.entities.len() - 1) as u32, 0) })
         } else {
             let old_slot_index = self.next_free_slot;
-            let mut entry = &mut self.entities[old_slot_index as usize];
-            self.next_free_slot = unsafe { entry.index_in_archetype() };
+            let entry = &mut self.entities[old_slot_index as usize];
+            self.next_free_slot = entry.index_in_archetype();
             entry.set_index_in_archetype(index_in_archetype);
             entry.set_archetype_index(archetype_index);
             Some(unsafe { Entity::new(old_slot_index, entry.version()) })
@@ -183,7 +185,7 @@ impl EntityRegistry {
         if entity.index() as usize >= self.entities.len() || entity == Entity::INVALID {
             return false;
         }
-        let mut entry = &mut self.entities[entity.index() as usize];
+        let entry = &mut self.entities[entity.index() as usize];
         if entry.version() != entity.version() || !entry.is_valid() {
             return false;
         }
@@ -198,7 +200,6 @@ impl EntityRegistry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use core::mem::size_of;
     extern crate std;
     #[test]
     fn test_entity_registry() {

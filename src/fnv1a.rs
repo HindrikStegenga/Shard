@@ -1,7 +1,9 @@
 const FNV_OFFSET_BASIS_32: u32 = 0x811c9dc5;
+#[allow(dead_code)]
 const FNV_OFFSET_BASIS_64: u64 = 0xcbf29ce484222325;
 
 const FNV_PRIME_32: u32 = 0x01000193;
+#[allow(dead_code)]
 const FNV_PRIME_64: u64 = 0x00000100000001B3;
 
 /// Computes 64-bits fnv1a hash of the given slice, or up-to limit if provided.
@@ -58,6 +60,7 @@ pub(crate) const fn fnv1a_hash_32(bytes: &[u8], limit: Option<usize>) -> u32 {
 /// Up to limit if provided, otherwise slice length.
 /// If limit is zero or exceeds slice length, slice length is used instead.
 #[inline(always)]
+#[allow(dead_code)]
 pub(crate) const fn fnv1a_hash_16_xor(bytes: &[u8], limit: Option<usize>) -> u16 {
     let bytes = fnv1a_hash_32(bytes, limit).to_ne_bytes();
     let upper: u16 = u16::from_ne_bytes([bytes[0], bytes[1]]);
@@ -67,18 +70,21 @@ pub(crate) const fn fnv1a_hash_16_xor(bytes: &[u8], limit: Option<usize>) -> u16
 
 /// Computes 64-bit fnv1a hash from a str.
 #[inline(always)]
+#[allow(dead_code)]
 pub(crate) const fn fnv1a_hash_str_64(input: &str) -> u64 {
     fnv1a_hash_64(input.as_bytes(), None)
 }
 
 /// Computes 32-bit fnv1a hash from a str.
 #[inline(always)]
+#[allow(dead_code)]
 pub(crate) const fn fnv1a_hash_str_32(input: &str) -> u32 {
     fnv1a_hash_32(input.as_bytes(), None)
 }
 
 /// Computes 16-bit fnv1a hash from a str.
 #[inline(always)]
+#[allow(dead_code)]
 pub(crate) const fn fnv1a_hash_str_16_xor(input: &str) -> u16 {
     fnv1a_hash_16_xor(input.as_bytes(), None)
 }

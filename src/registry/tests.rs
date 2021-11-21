@@ -1,8 +1,8 @@
-use crate::*;
-use crate::test_components::*;
-
 #[test]
 fn test_registry() {
+    use crate::test_components::*;
+    use crate::*;
+
     let mut registry = Registry::default();
     let entity = registry.create_entity((A::default(), B::default()));
     assert!(entity.is_ok());

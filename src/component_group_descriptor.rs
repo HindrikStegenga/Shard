@@ -1,8 +1,7 @@
-use super::component_group::*;
 use crate::archetype_descriptor::ArchetypeDescriptor;
 use crate::component_descriptor::ComponentDescriptor;
-use crate::{copy_component_descriptor_from_to, ComponentTypeId};
-use crate::{ArchetypeId, MAX_COMPONENTS_PER_ENTITY};
+use crate::copy_component_descriptor_from_to;
+use crate::MAX_COMPONENTS_PER_ENTITY;
 
 #[derive(Debug)]
 pub struct ComponentGroupDescriptor {
@@ -24,28 +23,30 @@ impl ComponentGroupDescriptor {
     }
 
     #[inline(always)]
-    pub fn archetype(&self) -> &ArchetypeDescriptor {
+    pub const fn archetype(&self) -> &ArchetypeDescriptor {
         &self.archetype
     }
     #[inline(always)]
-    pub fn as_sorted(&self, index: u8) -> &ComponentDescriptor {
-        &self.archetype.components()[index as usize]
+    pub const fn as_sorted(&self, index: u8) -> &ComponentDescriptor {
+        unsafe { &self.archetype.components_unchecked()[index as usize] }
     }
     #[inline(always)]
-    pub fn as_unsorted(&self, index: u8) -> &ComponentDescriptor {
-        &self.archetype.components()[self.sorted_to_unsorted[index as usize] as usize]
+    pub const fn as_unsorted(&self, index: u8) -> &ComponentDescriptor {
+        unsafe {
+            &self.archetype.components_unchecked()[self.sorted_to_unsorted[index as usize] as usize]
+        }
     }
 
     #[inline(always)]
-    pub fn sorted_to_unsorted(&self, index: u8) -> u8 {
+    pub const fn sorted_to_unsorted(&self, index: u8) -> u8 {
         self.sorted_to_unsorted[index as usize]
     }
     #[inline(always)]
-    pub fn unsorted_to_sorted(&self, index: u8) -> u8 {
+    pub const fn unsorted_to_sorted(&self, index: u8) -> u8 {
         self.unsorted_to_sorted[index as usize]
     }
     #[inline(always)]
-    pub fn len(&self) -> u8 {
+    pub const fn len(&self) -> u8 {
         self.archetype.len()
     }
 }
@@ -199,24 +200,6 @@ mod tests {
             ComponentDescriptor::from_component::<TestComponentC>(),
         ];
         let result = ComponentGroupDescriptor::compute_sorted_descriptors(&descriptors);
-        assert_eq!(
-            ComponentDescriptor::from_component::<TestComponentA>(),
-            result[0]
-        );
-        assert_eq!(
-            ComponentDescriptor::from_component::<TestComponentB>(),
-            result[1]
-        );
-        assert_eq!(
-            ComponentDescriptor::from_component::<TestComponentC>(),
-            result[2]
-        );
-        let descriptors: [ComponentDescriptor; 3] = [
-            ComponentDescriptor::from_component::<TestComponentB>(),
-            ComponentDescriptor::from_component::<TestComponentC>(),
-            ComponentDescriptor::from_component::<TestComponentA>(),
-        ];
-
         assert_eq!(
             ComponentDescriptor::from_component::<TestComponentA>(),
             result[0]

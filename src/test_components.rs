@@ -2,7 +2,7 @@ use crate::*;
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub(crate) struct A {
-    pub(crate) _data: usize
+    pub(crate) _data: usize,
 }
 impl Default for A {
     fn default() -> Self {
@@ -15,7 +15,7 @@ impl Component for A {
 }
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub(crate) struct B {
-    pub(crate) _data: usize
+    pub(crate) _data: usize,
 }
 impl Default for B {
     fn default() -> Self {
@@ -28,7 +28,7 @@ impl Component for B {
 }
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub(crate) struct C {
-    pub(crate) _data: usize
+    pub(crate) _data: usize,
 }
 impl Default for C {
     fn default() -> Self {
@@ -41,7 +41,7 @@ impl Component for C {
 }
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub(crate) struct DropLogA {
-    pub(crate) _data: usize
+    pub(crate) _data: usize,
 }
 impl Default for DropLogA {
     fn default() -> Self {
@@ -61,7 +61,7 @@ impl Drop for DropLogA {
 }
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub(crate) struct DropLogB {
-    pub(crate) _data: usize
+    pub(crate) _data: usize,
 }
 impl Default for DropLogB {
     fn default() -> Self {
@@ -81,7 +81,7 @@ impl Drop for DropLogB {
 }
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub(crate) struct DropLogC {
-    pub(crate) _data: usize
+    pub(crate) _data: usize,
 }
 impl Default for DropLogC {
     fn default() -> Self {

@@ -9,7 +9,6 @@ use sorted_archetype_key::*;
 use crate::archetype::Archetype;
 use crate::archetype_descriptor::ArchetypeDescriptor;
 use crate::constants::*;
-use crate::ArchetypeId;
 
 const DEFAULT_VECTOR_CAPACITY: usize = 64;
 
@@ -44,6 +43,7 @@ impl Default for ArchetypeRegistry {
 }
 
 impl ArchetypeRegistry {
+    #[allow(dead_code)]
     pub(crate) fn find_archetype(
         &self,
         archetype_descriptor: &ArchetypeDescriptor,
@@ -62,6 +62,7 @@ impl ArchetypeRegistry {
         };
     }
 
+    #[allow(dead_code)]
     pub(crate) fn find_archetype_mut(
         &mut self,
         archetype_descriptor: &ArchetypeDescriptor,

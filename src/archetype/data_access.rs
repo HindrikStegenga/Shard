@@ -5,8 +5,7 @@ use crate::{
     Component, DEFAULT_ARCHETYPE_ALLOCATION_SIZE, MAX_COMPONENTS_PER_ENTITY,
     MAX_ENTITIES_PER_ARCHETYPE,
 };
-use alloc::alloc::{alloc, dealloc, realloc, Layout};
-use core::f32::consts::E;
+use alloc::alloc::{dealloc, realloc, Layout};
 use core::mem::{align_of, size_of};
 use core::ptr::{slice_from_raw_parts, slice_from_raw_parts_mut};
 
@@ -299,7 +298,7 @@ impl Archetype {
     /// - Deallocates if the new capacity exceeds [`MAX_ENTITIES_PER_ARCHETYPE`]. TODO: This is weird?
     pub(super) unsafe fn resize_capacity(&mut self, change_in_entity_count: isize) {
         let old_capacity = self.capacity;
-        let new_capacity = (old_capacity as isize + change_in_entity_count);
+        let new_capacity = old_capacity as isize + change_in_entity_count;
         if new_capacity <= 0 || new_capacity >= MAX_ENTITIES_PER_ARCHETYPE as isize {
             self.dealloc();
             return;

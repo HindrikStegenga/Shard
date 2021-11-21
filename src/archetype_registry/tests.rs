@@ -6,5 +6,5 @@ use crate::test_components::*;
 fn test_archetype_registry() {
     let mut registry = ArchetypeRegistry::default();
     let descriptor = <(A, B) as ComponentGroup>::DESCRIPTOR.archetype();
-    let archetype = registry.find_or_create_archetype(&descriptor);
+    let _archetype = registry.find_or_create_archetype(&descriptor);
 }

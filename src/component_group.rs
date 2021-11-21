@@ -1,5 +1,3 @@
-use crate::archetype_descriptor::ArchetypeDescriptor;
-use crate::archetype_id::ArchetypeId;
 use crate::component_descriptor::{ComponentDescriptor, ComponentDescriptorFnPointers};
 use crate::{define_component_descriptor, Component, MAX_COMPONENTS_PER_ENTITY};
 
@@ -31,6 +29,9 @@ pub trait ComponentGroup<'c>: private::SealedComponentGroup + Sized + 'static {
 
     /// Returns the sorted pointers given a reference to self.
     unsafe fn as_sorted_pointers(&mut self, ptrs: &mut [*mut u8; MAX_COMPONENTS_PER_ENTITY]);
+
+    /// Returns an instance of self, read from the sorted pointers.
+    unsafe fn read_from_sorted_pointers(pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY]) -> Self;
 
     /// Returns a reference tuple of component types given an array of sorted pointers.
     unsafe fn pointers_as_ref_tuple(
@@ -66,6 +67,11 @@ impl<'c, T: Component + SealedComponentGroup> ComponentGroup<'c> for T {
     #[inline(always)]
     unsafe fn as_sorted_pointers(&mut self, ptrs: &mut [*mut u8; MAX_COMPONENTS_PER_ENTITY]) {
         ptrs[0] = self as *mut T as *mut u8;
+    }
+
+    #[inline(always)]
+    unsafe fn read_from_sorted_pointers(pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY]) -> Self {
+        core::ptr::read(pointers[0] as *mut T)
     }
 
     #[inline(always)]
@@ -118,6 +124,13 @@ macro_rules! impl_component_tuple {
                 $(
                     ptrs[Self::DESCRIPTOR.unsorted_to_sorted($elem_idx) as usize] = &mut tuple_index!(self, $elem_idx) as *mut $elem as *mut u8;
                 )*
+            }
+
+            #[inline(always)]
+            unsafe fn read_from_sorted_pointers(pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY]) -> Self {
+                ($(
+                    core::ptr::read(pointers[Self::DESCRIPTOR.unsorted_to_sorted($elem_idx) as usize] as *mut $elem)
+                ),*)
             }
 
             #[inline(always)]
@@ -217,6 +230,26 @@ mod test {
     }
 
     #[test]
+    fn test_component_group_sorted_pointers_to_tuples() {
+        unsafe {
+            let mut group = (A::default(), B::default(), C::default());
+
+            let mut ptrs = [core::ptr::null_mut(); MAX_COMPONENTS_PER_ENTITY];
+            ComponentGroup::as_sorted_pointers(&mut group, &mut ptrs);
+
+            let result = <(A, B, C) as ComponentGroup<'_>>::read_from_sorted_pointers(&ptrs);
+            assert_eq!(result.0, group.0);
+            assert_eq!(result.1, group.1);
+            assert_eq!(result.2, group.2);
+
+            let result = <(C, A, B) as ComponentGroup<'_>>::read_from_sorted_pointers(&ptrs);
+            assert_eq!(result.1, group.0);
+            assert_eq!(result.2, group.1);
+            assert_eq!(result.0, group.2);
+        }
+    }
+
+    #[test]
     fn test_component_group_slices() {
         unsafe {
             let mut slice_a = [
@@ -279,13 +312,13 @@ mod test {
             pointers[1] = slice_b.as_mut_ptr() as *mut u8;
             pointers[2] = slice_c.as_mut_ptr() as *mut u8;
 
-            let mut slices: (&[A], &[B], &[C]) =
+            let slices: (&[A], &[B], &[C]) =
                 <(A, B, C) as ComponentGroup<'_>>::slice_unchecked(&mut pointers, slice_a.len());
             assert_eq!(slices.0.as_ptr() as *mut u8, pointers[0]);
             assert_eq!(slices.1.as_ptr() as *mut u8, pointers[1]);
             assert_eq!(slices.2.as_ptr() as *mut u8, pointers[2]);
 
-            let mut slices: (&[B], &[C], &[A]) =
+            let slices: (&[B], &[C], &[A]) =
                 <(B, C, A) as ComponentGroup<'_>>::slice_unchecked(&mut pointers, slice_a.len());
             assert_eq!(slices.0.as_ptr() as *mut u8, pointers[1]);
             assert_eq!(slices.1.as_ptr() as *mut u8, pointers[2]);
