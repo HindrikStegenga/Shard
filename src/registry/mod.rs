@@ -2,9 +2,10 @@ use crate::archetype::EntityMetadata;
 use crate::archetype_registry::ArchetypeRegistry;
 use crate::component_group_descriptor::ComponentGroupDescriptor;
 use crate::{component_group::ComponentGroup, entity_registry::EntityRegistry, Component, Entity};
-
+#[cfg(test)]
 mod tests;
 
+/// The primary construct in the *Shard* Entity Component System (ECS).
 pub struct Registry {
     entities: EntityRegistry,
     archetypes: ArchetypeRegistry,
@@ -20,6 +21,10 @@ impl Default for Registry {
 }
 
 impl Registry {
+    /// Creates a new entity using the provided components.
+    /// Returns Ok with a Entity if successful, or Err(components) if not.
+    /// Returns Err if the provided component group is invalid, an internal limit is exceeded.
+    /// Panics in case of allocation failure.
     pub fn create_entity<'c, G: ComponentGroup<'c>>(&mut self, components: G) -> Result<Entity, G> {
         if !G::DESCRIPTOR.is_valid() {
             return Err(components);
@@ -43,6 +48,8 @@ impl Registry {
         Ok(entity_entry.entity())
     }
 
+    /// Removes the entity from the registry.
+    /// This function return false if the entity given is invalid.
     pub fn destroy_entity(&mut self, entity: Entity) -> bool {
         let entry = match self.entities.get_entity_entry(entity) {
             None => return false,
@@ -62,10 +69,41 @@ impl Registry {
                     .set_index_in_archetype(index_in_archetype);
             }
         };
-        self.entities.destroy_entity(entity);
+        let _v = self.entities.destroy_entity(entity);
+        debug_assert!(_v);
         true
     }
 
+    /// Removes the entity from the registry if it matches the given component group exactly.
+    /// Otherwise, it simply leaves the entity as is.
+    /// This function return None if either entity given is invalid, or does not match the given component group.
+    pub fn remove_entity<'a, G: ComponentGroup<'a>>(&'a mut self, entity: Entity) -> Option<G> {
+        let entry = match self.entities.get_entity_entry(entity) {
+            None => return None,
+            Some(v) => v,
+        };
+        let mut archetype = &mut self.archetypes[entry.archetype_index()];
+        let index_in_archetype = entry.index_in_archetype();
+        unsafe {
+            return match archetype.swap_remove_unchecked::<G>(index_in_archetype) {
+                (value, true) => {
+                    // A swap was needed, so we need to update the index_in_archetype of the entry that it was swapped with.
+                    // We retrieve the entity handle using the metadata, which is now at the old entity's position.
+                    let swapped_entity =
+                        archetype.entity_metadata()[index_in_archetype as usize].entity();
+                    self.entities
+                        .get_entity_entry_mut(swapped_entity)
+                        .unwrap()
+                        .set_index_in_archetype(index_in_archetype);
+                    Some(value)
+                }
+                (value, false) => Some(value),
+            };
+        }
+    }
+
+    /// Returns true if a given entity has the specified component.
+    /// Returns false if entity is invalid or does not have the specified component.
     pub fn has_component<C: Component>(&self, entity: Entity) -> bool {
         let entry = match self.entities.get_entity_entry(entity) {
             None => return false,
@@ -75,6 +113,8 @@ impl Registry {
         archetype.descriptor().has_component::<C>()
     }
 
+    /// Returns a reference to the specified component if the entity has it.
+    /// Returns false if entity is invalid or does not have the specified component.
     pub fn get_component<C: Component>(&self, entity: Entity) -> Option<&C> {
         let entry = match self.entities.get_entity_entry(entity) {
             None => return None,
@@ -87,6 +127,8 @@ impl Registry {
         .into()
     }
 
+    /// Returns a mutable reference to the specified component if the entity has it.
+    /// Returns false if entity is invalid or does not have the specified component.
     pub fn get_component_mut<C: Component>(&mut self, entity: Entity) -> Option<&mut C> {
         let entry = match self.entities.get_entity_entry(entity) {
             None => return None,

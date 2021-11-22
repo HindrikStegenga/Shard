@@ -82,6 +82,33 @@ impl ArchetypeRegistry {
         };
     }
 
+    pub(crate) fn find_or_create_archetypes_add_remove(
+        &mut self,
+        source: &ArchetypeDescriptor,
+        destination: &ArchetypeDescriptor,
+    ) -> Option<(&mut Archetype, &mut Archetype)> {
+        let source_len = source.len() as usize;
+        let dest_len = destination.len() as usize;
+        if source_len > MAX_COMPONENTS_PER_ENTITY
+            || !source.is_valid()
+            || dest_len > MAX_COMPONENTS_PER_ENTITY
+            || !destination.is_valid()
+            || source.archetype_id() == destination.archetype_id()
+        {
+            return None;
+        }
+
+        let source_archetype_index = match self.sorted_mappings[source_len]
+            .binary_search_by_key(&source.archetype_id(), |e| e.id)
+        {
+            Ok(mapping_idx) => self.sorted_mappings[source_len][mapping_idx].archetype_index,
+            Err(_) => return None,
+        };
+        let (destination_archetype_index, _) = self.find_or_create_archetype(destination)?;
+
+        None
+    }
+
     pub(crate) fn find_or_create_archetype(
         &mut self,
         archetype_descriptor: &ArchetypeDescriptor,

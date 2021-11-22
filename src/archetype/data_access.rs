@@ -43,21 +43,21 @@ impl Archetype {
         }
     }
 
-    /// Returns a tuple of component slices to the archetype's data.
+    /// Reads a specific component from the archetype at the given index.
     /// # Safety:
-    /// - Must be called exactly with the component group contained in the archetype.
-    /// - a compatible group type is also accepted.
-    /// - [`G`] must have a valid archetype descriptor.
-    #[inline(always)]
-    pub(crate) unsafe fn get_slices_unchecked_exact<'a, G: ComponentGroup<'a>>(
-        &'a self,
-    ) -> G::SliceRefTuple {
-        debug_assert_eq!(
-            G::DESCRIPTOR.archetype().archetype_id(),
-            self.descriptor.archetype_id()
-        );
-
-        G::slice_unchecked(&self.pointers, self.entity_count as usize)
+    /// - Component type [`C`] must be present in the archetype
+    /// - panics otherwise.
+    pub(crate) unsafe fn read_component_unchecked<C: Component>(&mut self, index: u32) -> C {
+        match self
+            .descriptor
+            .components()
+            .binary_search_by_key(&C::ID, |e| e.component_type_id)
+        {
+            Ok(idx) => {
+                core::ptr::read::<C>((self.pointers[idx] as *const C).offset(index as isize))
+            }
+            Err(_) => panic!(),
+        }
     }
 
     /// Returns a tuple of mutable component slices to the archetype's data.
@@ -75,6 +75,23 @@ impl Archetype {
         );
 
         G::slice_unchecked_mut(&self.pointers, self.entity_count as usize)
+    }
+
+    /// Returns a tuple of component slices to the archetype's data.
+    /// # Safety:
+    /// - Must be called exactly with the component group contained in the archetype.
+    /// - a compatible group type is also accepted.
+    /// - [`G`] must have a valid archetype descriptor.
+    #[inline(always)]
+    pub(crate) unsafe fn get_slices_unchecked_exact<'a, G: ComponentGroup<'a>>(
+        &'a self,
+    ) -> G::SliceRefTuple {
+        debug_assert_eq!(
+            G::DESCRIPTOR.archetype().archetype_id(),
+            self.descriptor.archetype_id()
+        );
+
+        G::slice_unchecked(&self.pointers, self.entity_count as usize)
     }
 
     /// Returns the slices for the components in [`G`], provided that archetype itself contains a superset of G.
@@ -232,24 +249,23 @@ impl Archetype {
     /// # Safety:
     /// - [`index`] must be smaller than the amount of entities in the archetype.
     /// - [`G`] must exactly match the type store in the archetype.
+    /// - Ordering of component in [`G`] may be different.
     pub(crate) unsafe fn swap_remove_unchecked<'a, G: ComponentGroup<'a>>(
         &mut self,
         index: u32,
     ) -> (G, bool) {
         debug_assert!(index < self.entity_count);
-        todo!()
-        // return if index == self.entity_count - 1 {
-        //     // Is the last one, so just drop it.
-        //     self.drop_entity(index);
-        //     self.entity_count -= 1;
-        //
-        //     false
-        // } else {
-        //     self.swap_entities(index, self.entity_count - 1);
-        //     self.drop_entity(self.entity_count - 1);
-        //     self.entity_count -= 1;
-        //     true
-        // };
+        if index == self.entity_count - 1 {
+            // Is the last one, so just drop it.
+            let data: G = self.read_components_exact_unchecked::<G>(index);
+            self.entity_count -= 1;
+            (data, false)
+        } else {
+            self.swap_entities(index, self.entity_count - 1);
+            let data: G = self.read_components_exact_unchecked(self.entity_count - 1);
+            self.entity_count -= 1;
+            (data, true)
+        }
     }
 
     /// Swaps the entities at the provided positions.
@@ -285,6 +301,18 @@ impl Archetype {
         for (idx, descriptor) in self.descriptor.components().iter().enumerate() {
             (descriptor.fns.drop_handler)(self.pointers[idx], self.entity_count as usize);
         }
+    }
+
+    /// Reads the component data at [`index`] and returns it.
+    /// # Safety:
+    /// - [`G`] must be exactly the type stored in the archetype.
+    /// - a compatible one also works. (i.e. same archetype, different ordering)
+    pub(crate) unsafe fn read_components_exact_unchecked<'a, G: ComponentGroup<'a>>(
+        &self,
+        index: u32,
+    ) -> G {
+        let pointers = self.offset_sorted_pointers_unchecked(index);
+        G::read_from_sorted_pointers(&pointers)
     }
 }
 
@@ -360,6 +388,48 @@ impl Archetype {
         dealloc(self.entity_metadata as *mut u8, layout);
         self.entity_metadata = core::ptr::null_mut();
         self.capacity = 0;
+    }
+
+    /// Returns the pointers, offset by [`index`] elements.
+    #[inline(always)]
+    unsafe fn offset_sorted_pointers_unchecked(
+        &self,
+        index: u32,
+    ) -> [*mut u8; MAX_COMPONENTS_PER_ENTITY] {
+        let mut pointers = [core::ptr::null_mut(); MAX_COMPONENTS_PER_ENTITY];
+        for (c_idx, pointer) in self.pointers[0..self.descriptor.len() as usize]
+            .iter()
+            .enumerate()
+        {
+            pointers[c_idx] = self.pointers[c_idx]
+                .offset(self.descriptor.components()[c_idx].size as isize * index as isize);
+        }
+        pointers
+    }
+
+    /// Copies common components between two archetypes.
+    unsafe fn copy_common_components_between_archetypes_unchecked(
+        source: &Archetype,
+        source_index: u32,
+        destination: &mut Archetype,
+        destination_index: u32,
+    ) {
+        for (source_c_idx, source_component) in source.descriptor.components().iter().enumerate() {
+            for (destination_c_idx, destination_component) in
+                destination.descriptor.components().iter().enumerate()
+            {
+                if source_component.component_type_id != destination_component.component_type_id {
+                    continue;
+                }
+                core::ptr::copy_nonoverlapping(
+                    source.pointers[source_c_idx]
+                        .offset(source_component.size as isize * source_index as isize),
+                    destination.pointers[destination_c_idx]
+                        .offset(destination_component.size as isize * destination_index as isize),
+                    source_component.size as usize,
+                );
+            }
+        }
     }
 
     /// Returns the pointers for the components in [`G`], provided that archetype itself contains a superset of G.

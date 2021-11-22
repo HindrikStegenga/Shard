@@ -1,8 +1,10 @@
+#[cfg(test)]
+use crate::test_components::*;
+#[cfg(test)]
+use crate::*;
+
 #[test]
 fn test_registry() {
-    use crate::test_components::*;
-    use crate::*;
-
     let mut registry = Registry::default();
     let entity = registry.create_entity((A::default(), B::default()));
     assert!(entity.is_ok());
@@ -29,4 +31,10 @@ fn test_registry() {
     assert!(component.is_some());
     let component = component.unwrap();
     assert_eq!(*component, B::default());
+
+    let entity = registry.remove_entity::<(B, A)>(entity);
+    assert!(entity.is_some());
+    let (b, a) = entity.unwrap();
+    assert_eq!(a, A::default());
+    assert_eq!(b, B::default());
 }

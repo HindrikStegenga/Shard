@@ -88,7 +88,15 @@ fn test_archetype_swap_entities() {
             A { _data: 1 }
         );
         assert_eq!(
+            archetype.read_component_unchecked::<A>(idx1),
+            A { _data: 1 }
+        );
+        assert_eq!(
             *archetype.get_component_unchecked_mut::<B>(idx1),
+            B { _data: 3 }
+        );
+        assert_eq!(
+            archetype.read_component_unchecked::<B>(idx1),
             B { _data: 3 }
         );
         assert_eq!(
@@ -96,7 +104,15 @@ fn test_archetype_swap_entities() {
             A { _data: 2 }
         );
         assert_eq!(
+            archetype.read_component_unchecked::<A>(idx2),
+            A { _data: 2 }
+        );
+        assert_eq!(
             *archetype.get_component_unchecked_mut::<B>(idx2),
+            B { _data: 4 }
+        );
+        assert_eq!(
+            archetype.read_component_unchecked::<B>(idx2),
             B { _data: 4 }
         );
 
@@ -144,5 +160,39 @@ fn test_archetype_swap_entities() {
 
         assert_eq!(archetype.entity_metadata()[idx1 as usize], meta1);
         assert_eq!(archetype.entity_metadata()[idx2 as usize], meta2);
+    }
+}
+
+#[test]
+fn test_archetype_read_components() {
+    unsafe {
+        let descriptor = <(A, B) as ComponentGroup<'_>>::DESCRIPTOR.archetype();
+
+        let mut archetype = Archetype::new(descriptor);
+        let meta = EntityMetadata::default();
+
+        let idx = archetype.push_entity_unchecked(meta, (A::default(), B::default()));
+        assert_eq!(
+            archetype.read_components_exact_unchecked::<(A, B)>(idx),
+            (A::default(), B::default())
+        );
+        assert_eq!(
+            archetype.read_components_exact_unchecked::<(B, A)>(idx),
+            (B::default(), A::default())
+        );
+
+        let descriptor = <(A, B, C) as ComponentGroup<'_>>::DESCRIPTOR.archetype();
+
+        let mut archetype = Archetype::new(descriptor);
+        let meta = EntityMetadata::default();
+        let idx = archetype.push_entity_unchecked(meta, (A::default(), B::default(), C::default()));
+        assert_eq!(
+            archetype.read_components_exact_unchecked::<(A, B, C)>(idx),
+            (A::default(), B::default(), C::default())
+        );
+        assert_eq!(
+            archetype.read_components_exact_unchecked::<(B, C, A)>(idx),
+            (B::default(), C::default(), A::default())
+        );
     }
 }
