@@ -1,7 +1,8 @@
-use crate::archetype::EntityMetadata;
+use crate::archetype::{Archetype, EntityMetadata};
 use crate::archetype_registry::ArchetypeRegistry;
-use crate::component_group_descriptor::ComponentGroupDescriptor;
+use crate::entity_registry::EntityEntry;
 use crate::{component_group::ComponentGroup, entity_registry::EntityRegistry, Component, Entity};
+
 #[cfg(test)]
 mod tests;
 
@@ -82,7 +83,7 @@ impl Registry {
             None => return None,
             Some(v) => v,
         };
-        let mut archetype = &mut self.archetypes[entry.archetype_index()];
+        let archetype = &mut self.archetypes[entry.archetype_index()];
         let index_in_archetype = entry.index_in_archetype();
         unsafe {
             return match archetype.swap_remove_unchecked::<G>(index_in_archetype) {
@@ -142,6 +143,33 @@ impl Registry {
     }
 
     pub fn add_component<C: Component>(&mut self, entity: Entity, component: C) -> Result<(), C> {
+        let entry = match self.entities.get_entity_entry(entity) {
+            None => return Err(component),
+            Some(v) => v.clone(),
+        };
+
+        let mut source_archetype =
+            unsafe { &mut (*(self as *mut Self)).archetypes[entry.archetype_index()] };
+        let mut new_descriptor = match source_archetype.descriptor().clone().add_component::<C>() {
+            None => return Err(component),
+            Some(v) => v,
+        };
+        let (_, destination_arch) = match self.archetypes.find_or_create_archetype(&new_descriptor)
+        {
+            None => {
+                return Err(component);
+            }
+            Some(v) => v,
+        };
+
+        unsafe {
+            Archetype::copy_common_components_between_archetypes_unchecked(
+                source_archetype,
+                entry.index_in_archetype(),
+                destination_arch,
+                0,
+            );
+        }
         todo!()
     }
 

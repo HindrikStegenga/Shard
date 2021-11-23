@@ -10,6 +10,7 @@ use crate::{
 /// Valid:      |version: u8|idx_in_arch: u24|arch_idx: u16|
 /// Invalid:    |version: u8|next_fr_slt: u24|INV_ARCH: u16|
 #[repr(C, align(2))]
+#[derive(Clone, Debug)]
 pub(crate) struct EntityEntry {
     values: [u8; 6],
 }
@@ -26,12 +27,16 @@ impl EntityEntry {
     #[inline(always)]
     pub fn is_valid(&self) -> bool {
         // Guaranteed to be properly aligned.
-        unsafe { *(self.values.as_ptr().offset(4) as *const u8 as *const u16) != INVALID_ARCHETYPE_INDEX }
+        unsafe {
+            *(self.values.as_ptr().offset(4) as *const u8 as *const u16) != INVALID_ARCHETYPE_INDEX
+        }
     }
     #[inline(always)]
     pub fn set_invalid(&mut self) {
         // Guaranteed to be properly aligned.
-        unsafe { *(self.values.as_ptr().offset(4) as *mut u8 as *mut u16) = INVALID_ARCHETYPE_INDEX }
+        unsafe {
+            *(self.values.as_ptr().offset(4) as *mut u8 as *mut u16) = INVALID_ARCHETYPE_INDEX
+        }
     }
 
     #[inline(always)]
@@ -41,17 +46,19 @@ impl EntityEntry {
     }
     #[inline(always)]
     pub fn archetype_index(&self) -> u16 {
-         unsafe { *(self.values.as_ptr().offset(4) as *const u16) }
+        unsafe { *(self.values.as_ptr().offset(4) as *const u16) }
     }
     #[inline(always)]
     pub fn index_in_archetype(&self) -> u32 {
-        unsafe { (( *(self.values.as_ptr() as *const u32)) & 0x00FFFFFF) >> 8 }
+        unsafe { ((*(self.values.as_ptr() as *const u32)) & 0x00FFFFFF) >> 8 }
     }
     #[inline(always)]
     pub fn set_index_in_archetype(&mut self, index: u32) {
         let v = self.values[0];
         let index = index << 8;
-        unsafe { ( *(self.values.as_ptr() as *mut u32)) = index; }
+        unsafe {
+            (*(self.values.as_ptr() as *mut u32)) = index;
+        }
         self.values[0] = v;
     }
 }
@@ -112,7 +119,7 @@ impl EntityRegistry {
 
         return if self.next_free_slot == INVALID_ENTITY_HANDLE_VALUE {
             // Linked list of free slots is empty, we need to allocate a new entity.
-            self.entities.push(EntityEntry { values: [0; 6]});
+            self.entities.push(EntityEntry { values: [0; 6] });
             let idx = self.entities.len() - 1;
             Some(ValidEntityRef {
                 entity: unsafe { Entity::new_unchecked(idx as u32, 0) },
@@ -145,9 +152,7 @@ impl EntityRegistry {
 
         return if self.next_free_slot == INVALID_ENTITY_HANDLE_VALUE {
             // Linked list of free slots is empty, we need to allocate a new entity.
-            let mut entry = EntityEntry {
-                values: [0; 6]
-            };
+            let mut entry = EntityEntry { values: [0; 6] };
             entry.set_archetype_index(archetype_index);
             entry.set_index_in_archetype(index_in_archetype);
             self.entities.push(entry);

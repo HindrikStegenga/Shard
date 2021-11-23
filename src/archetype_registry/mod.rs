@@ -82,32 +82,31 @@ impl ArchetypeRegistry {
         };
     }
 
-    pub(crate) fn find_or_create_archetypes_add_remove(
-        &mut self,
-        source: &ArchetypeDescriptor,
-        destination: &ArchetypeDescriptor,
-    ) -> Option<(&mut Archetype, &mut Archetype)> {
-        let source_len = source.len() as usize;
-        let dest_len = destination.len() as usize;
-        if source_len > MAX_COMPONENTS_PER_ENTITY
-            || !source.is_valid()
-            || dest_len > MAX_COMPONENTS_PER_ENTITY
-            || !destination.is_valid()
-            || source.archetype_id() == destination.archetype_id()
-        {
-            return None;
-        }
-
-        let source_archetype_index = match self.sorted_mappings[source_len]
-            .binary_search_by_key(&source.archetype_id(), |e| e.id)
-        {
-            Ok(mapping_idx) => self.sorted_mappings[source_len][mapping_idx].archetype_index,
-            Err(_) => return None,
-        };
-        let (destination_archetype_index, _) = self.find_or_create_archetype(destination)?;
-
-        None
-    }
+    // /// Returns mutable references to two different archetypes, creates the destination archetype if necessary.
+    // /// Returns None if:
+    // /// - any invalid archetype descriptor is provided
+    // /// - destination archetype could not be created.
+    // /// # Safety:
+    // /// - Assumes source is a valid archetype and destination is as well.
+    // /// - Assumes the are NOT identical.
+    // pub(crate) unsafe fn find_or_create_archetypes_add_remove_unchecked(
+    //     &mut self,
+    //     source_archetype_index: u16,
+    //     destination: &ArchetypeDescriptor,
+    // ) -> Option<(&mut Archetype, &mut Archetype)> {
+    //     // Safety: it's guaranteed source_archetype_index != destination_archetype_index, as they are known to be separate archetypes.
+    //     let source_archetype = unsafe {
+    //         &mut *self
+    //             .archetypes
+    //             .as_mut_ptr()
+    //             .offset(source_archetype_index as isize)
+    //     };
+    //     let (_destination_arch_index, destination_archetype) =
+    //         self.find_or_create_archetype(destination)?;
+    //     debug_assert_ne!(source_archetype_index, _destination_arch_index);
+    //
+    //     Some((source_archetype, destination_archetype))
+    // }
 
     pub(crate) fn find_or_create_archetype(
         &mut self,

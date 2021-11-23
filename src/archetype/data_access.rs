@@ -401,14 +401,14 @@ impl Archetype {
             .iter()
             .enumerate()
         {
-            pointers[c_idx] = self.pointers[c_idx]
-                .offset(self.descriptor.components()[c_idx].size as isize * index as isize);
+            pointers[c_idx] =
+                pointer.offset(self.descriptor.components()[c_idx].size as isize * index as isize);
         }
         pointers
     }
 
     /// Copies common components between two archetypes.
-    unsafe fn copy_common_components_between_archetypes_unchecked(
+    pub(crate) unsafe fn copy_common_components_between_archetypes_unchecked(
         source: &Archetype,
         source_index: u32,
         destination: &mut Archetype,
