@@ -227,4 +227,25 @@ impl Registry {
     ) -> Result<C1, C2> {
         todo!()
     }
+
+    /// Returns a tuple of component slices if the exact archetype matching the component group exists.
+    pub fn iter_components_exact<'a, G: ComponentGroup<'a>>(&'a self) -> G::SliceRefTuple {
+        match self.archetypes.find_archetype(G::DESCRIPTOR.archetype()) {
+            Some(v) => unsafe { v.get_slices_unchecked_exact::<G>() },
+            None => G::empty_slice(),
+        }
+    }
+
+    /// Returns a tuple of mutable component slices if the exact archetype matching the component group exists.
+    pub fn iter_components_exact_mut<'a, G: ComponentGroup<'a>>(
+        &'a mut self,
+    ) -> G::SliceMutRefTuple {
+        match self
+            .archetypes
+            .find_archetype_mut(G::DESCRIPTOR.archetype())
+        {
+            Some(v) => unsafe { v.get_slices_unchecked_exact_mut::<G>() },
+            None => G::empty_slice_mut(),
+        }
+    }
 }

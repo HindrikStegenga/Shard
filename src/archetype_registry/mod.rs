@@ -1,4 +1,6 @@
+mod iter;
 mod sorted_archetype_key;
+
 #[cfg(test)]
 mod tests;
 

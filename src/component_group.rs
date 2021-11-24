@@ -1,5 +1,6 @@
 use crate::component_descriptor::{ComponentDescriptor, ComponentDescriptorFnPointers};
 use crate::{define_component_descriptor, Component, MAX_COMPONENTS_PER_ENTITY};
+use core::marker::PhantomData;
 
 use crate::component_group_descriptor::ComponentGroupDescriptor;
 use private::SealedComponentGroup;
@@ -52,6 +53,9 @@ pub trait ComponentGroup<'c>: private::SealedComponentGroup + Sized + 'static {
         sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
         len: usize,
     ) -> Self::SliceMutRefTuple;
+
+    fn empty_slice() -> Self::SliceRefTuple;
+    fn empty_slice_mut() -> Self::SliceMutRefTuple;
 }
 
 impl<'c, T: Component + SealedComponentGroup> ComponentGroup<'c> for T {
@@ -103,6 +107,16 @@ impl<'c, T: Component + SealedComponentGroup> ComponentGroup<'c> for T {
     ) -> Self::SliceMutRefTuple {
         core::slice::from_raw_parts_mut(sorted_pointers[0] as *mut T, len)
     }
+
+    #[inline(always)]
+    fn empty_slice() -> Self::SliceRefTuple {
+        &[]
+    }
+
+    #[inline(always)]
+    fn empty_slice_mut() -> Self::SliceMutRefTuple {
+        &mut []
+    }
 }
 
 macro_rules! impl_component_tuple {
@@ -115,6 +129,17 @@ macro_rules! impl_component_tuple {
 
             type SliceRefTuple = ($(&'s [$elem]),*);
             type SliceMutRefTuple = ($(&'s mut [$elem]),*);
+
+            #[inline(always)]
+            fn empty_slice() -> Self::SliceRefTuple {
+                ($(&[] as &[$elem]), *)
+            }
+
+            #[inline(always)]
+            fn empty_slice_mut() -> Self::SliceMutRefTuple {
+                ($(&mut [] as &mut [$elem]), *)
+            }
+
 
             const DESCRIPTOR: ComponentGroupDescriptor =
                 ComponentGroupDescriptor::new(&[$(define_component_descriptor!($elem)), *]);
