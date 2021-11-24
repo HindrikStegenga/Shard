@@ -142,35 +142,71 @@ impl Registry {
         .into()
     }
 
+    /// Adds a given component to the entity if it's not yet present.
+    /// Returns the original component in case of failure for any reason.
+    /// Reasons for failure:
+    /// - Invalid entity provided.
+    /// - Destination archetype could not be created.
     pub fn add_component<C: Component>(&mut self, entity: Entity, component: C) -> Result<(), C> {
         let entry = match self.entities.get_entity_entry(entity) {
             None => return Err(component),
             Some(v) => v.clone(),
         };
 
-        let mut source_archetype =
-            unsafe { &mut (*(self as *mut Self)).archetypes[entry.archetype_index()] };
-        let mut new_descriptor = match source_archetype.descriptor().clone().add_component::<C>() {
-            None => return Err(component),
-            Some(v) => v,
-        };
-        let (_, destination_arch) = match self.archetypes.find_or_create_archetype(&new_descriptor)
+        // Get the new archetype
+        let (source_archetype, destination_archetype_index, destination_archetype) = match self
+            .archetypes
+            .find_or_create_archetype_adding_component(entry.archetype_index(), &C::DESCRIPTOR)
         {
-            None => {
-                return Err(component);
-            }
             Some(v) => v,
+            None => return Err(component),
         };
 
+        // Make sure the entity we move is at the end of it's archetype (so data stays contiguous).
+        if unsafe { source_archetype.swap_to_last_unchecked(entry.index_in_archetype()) } {
+            // A swap was needed, so we need to update the index_in_archetype of the entry that it was swapped with.
+            // We retrieve the entity handle using the metadata, which is now at the swapped with entity's position.
+            let swapped_entity =
+                source_archetype.entity_metadata()[entry.index_in_archetype() as usize].entity();
+            self.entities
+                .get_entity_entry_mut(swapped_entity)
+                .unwrap()
+                .set_index_in_archetype(entry.index_in_archetype());
+        }
+
+        // copy from end to end.
+        let new_source_entity_index_in_archetype = source_archetype.len() - 1;
+        let destination_entity_index_in_archetype = destination_archetype.len() - 1;
+
         unsafe {
+            // Make space in the destination archetype.
+            destination_archetype.push_uninitialized_entity();
+            // Write common components.
             Archetype::copy_common_components_between_archetypes_unchecked(
                 source_archetype,
-                entry.index_in_archetype(),
-                destination_arch,
-                0,
+                new_source_entity_index_in_archetype,
+                destination_archetype,
+                destination_entity_index_in_archetype,
             );
+            // Write added component
+            destination_archetype
+                .write_single_component_unchecked(destination_entity_index_in_archetype, component);
+
+            // Copy the metadata
+            destination_archetype.entity_metadata_mut()
+                [destination_entity_index_in_archetype as usize] =
+                source_archetype.entity_metadata()[new_source_entity_index_in_archetype as usize];
+
+            // Make the source archetype forget the old entity.
+            source_archetype.decrement_len_unchecked();
         }
-        todo!()
+
+        // Update the original entity entry to point to destination archetype and index in archetype.
+        let entity_entry = self.entities.get_entity_entry_mut(entity).unwrap();
+        entity_entry.set_archetype_index(destination_archetype_index);
+        entity_entry.set_index_in_archetype(destination_entity_index_in_archetype);
+
+        Ok(())
     }
 
     pub fn remove_component<C: Component>(&mut self, entity: Entity) -> Result<C, ()> {

@@ -21,7 +21,7 @@ impl Archetype {
             .binary_search_by_key(&C::ID, |e| e.component_type_id)
         {
             Ok(idx) => &*(self.pointers[idx] as *mut C).offset(index as isize),
-            Err(_) => panic!(),
+            Err(_) => unreachable!(),
         }
     }
 
@@ -39,7 +39,7 @@ impl Archetype {
             .binary_search_by_key(&C::ID, |e| e.component_type_id)
         {
             Ok(idx) => &mut *(self.pointers[idx] as *mut C).offset(index as isize),
-            Err(_) => panic!(),
+            Err(_) => unreachable!(),
         }
     }
 
@@ -56,7 +56,7 @@ impl Archetype {
             Ok(idx) => {
                 core::ptr::read::<C>((self.pointers[idx] as *const C).offset(index as isize))
             }
-            Err(_) => panic!(),
+            Err(_) => unreachable!(),
         }
     }
 
@@ -123,7 +123,7 @@ impl Archetype {
 
 impl Archetype {
     /// Returns the amount of entities currently stored in the archetype.
-    pub fn size(&self) -> u32 {
+    pub fn len(&self) -> u32 {
         self.entity_count
     }
 
@@ -164,20 +164,48 @@ impl Archetype {
             G::DESCRIPTOR.archetype().archetype_id(),
             self.descriptor.archetype_id()
         );
-
-        if self.is_full() {
-            let additional_capacity = if self.capacity == 0 {
-                DEFAULT_ARCHETYPE_ALLOCATION_SIZE
-            } else {
-                self.capacity as usize
-            };
-            self.resize_capacity(additional_capacity as isize);
-        }
-
+        self.resize_if_necessary();
         let entity_index = self.entity_count;
         self.write_entity_unchecked(entity_index, metadata, entity);
         self.entity_count += 1;
         entity_index
+    }
+
+    /// Identical to push_entity_unchecked but does not actually write the entity's component data.
+    /// The memory at the the returned index MUST be written with valid component data.
+    /// The metadata is not set either.
+    pub(crate) unsafe fn push_uninitialized_entity(&mut self) -> u32 {
+        self.resize_if_necessary();
+        let entity_index = self.entity_count;
+        self.entity_count += 1;
+        entity_index
+    }
+
+    /// Decrements archetype size by 1, therefore assuming the last entity is moved elsewhere.
+    /// As such, it does not call drop on the last entity.
+    pub(crate) unsafe fn decrement_len_unchecked(&mut self) {
+        self.entity_count -= 1;
+    }
+
+    /// Writes a single component into a specific position.
+    /// Does not call drop on the existing component at index.
+    /// Panics if called on an archetype that does not contain [`C`].
+    pub(crate) unsafe fn write_single_component_unchecked<C: Component>(
+        &mut self,
+        index: u32,
+        component: C,
+    ) {
+        match self
+            .descriptor
+            .components()
+            .binary_search_by_key(&C::ID, |e| e.component_type_id)
+        {
+            Ok(idx) => {
+                let pointer = (self.pointers[idx] as *mut C).offset(index as isize);
+                core::ptr::write(pointer, component);
+            }
+            Err(_) => unreachable!(),
+        }
     }
 
     /// Writes a given entity/component-tuple into the archetype's backing memory.
@@ -239,6 +267,22 @@ impl Archetype {
             self.entity_count -= 1;
             true
         }
+    }
+
+    /// Swaps the entity at [`index`] and the last entity.
+    /// Makes sure the entity at [`index`] is at the end of the archetype.
+    /// If [`index`] is the last element, does nothing.
+    /// Returns true if a swap occurred, or false if not.
+    /// # Safety:
+    /// - [`index`] must be smaller than the amount of entities in the archetype.
+    pub(crate) unsafe fn swap_to_last_unchecked(&mut self, index: u32) -> bool {
+        debug_assert!(index < self.entity_count);
+        return if index == self.entity_count - 1 {
+            false
+        } else {
+            self.swap_entities(index, self.entity_count - 1);
+            true
+        };
     }
 
     /// Swaps the entity at [`index`] and the last entity and returns the now-last entity.
@@ -405,6 +449,18 @@ impl Archetype {
                 pointer.offset(self.descriptor.components()[c_idx].size as isize * index as isize);
         }
         pointers
+    }
+
+    /// Resizes the backing memory by the default amount if necessary.
+    unsafe fn resize_if_necessary(&mut self) {
+        if self.is_full() {
+            let additional_capacity = if self.capacity == 0 {
+                DEFAULT_ARCHETYPE_ALLOCATION_SIZE
+            } else {
+                self.capacity as usize
+            };
+            self.resize_capacity(additional_capacity as isize);
+        }
     }
 
     /// Copies common components between two archetypes.

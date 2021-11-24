@@ -8,12 +8,15 @@ use sorted_archetype_key::*;
 
 use crate::archetype::Archetype;
 use crate::archetype_descriptor::ArchetypeDescriptor;
+use crate::component_descriptor::ComponentDescriptor;
 use crate::constants::*;
 
 const DEFAULT_VECTOR_CAPACITY: usize = 64;
 
 #[derive(Debug)]
+/// Stores all archetypes.
 pub(crate) struct ArchetypeRegistry {
+    // TODO: Currently not a great approach, should become a graph
     sorted_mappings: [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
     archetypes: Vec<Archetype>,
 }
@@ -82,31 +85,40 @@ impl ArchetypeRegistry {
         };
     }
 
-    // /// Returns mutable references to two different archetypes, creates the destination archetype if necessary.
-    // /// Returns None if:
-    // /// - any invalid archetype descriptor is provided
-    // /// - destination archetype could not be created.
-    // /// # Safety:
-    // /// - Assumes source is a valid archetype and destination is as well.
-    // /// - Assumes the are NOT identical.
-    // pub(crate) unsafe fn find_or_create_archetypes_add_remove_unchecked(
-    //     &mut self,
-    //     source_archetype_index: u16,
-    //     destination: &ArchetypeDescriptor,
-    // ) -> Option<(&mut Archetype, &mut Archetype)> {
-    //     // Safety: it's guaranteed source_archetype_index != destination_archetype_index, as they are known to be separate archetypes.
-    //     let source_archetype = unsafe {
-    //         &mut *self
-    //             .archetypes
-    //             .as_mut_ptr()
-    //             .offset(source_archetype_index as isize)
-    //     };
-    //     let (_destination_arch_index, destination_archetype) =
-    //         self.find_or_create_archetype(destination)?;
-    //     debug_assert_ne!(source_archetype_index, _destination_arch_index);
-    //
-    //     Some((source_archetype, destination_archetype))
-    // }
+    /// Returns mutable reference to source archetype and finds or creates a new archetype by adding
+    /// the given component type as defined by component descriptor.
+    pub(crate) fn find_or_create_archetype_adding_component(
+        &mut self,
+        source_archetype_index: u16,
+        component_descriptor: &ComponentDescriptor,
+    ) -> Option<(&mut Archetype, u16, &mut Archetype)> {
+        // Range check
+        if source_archetype_index as usize > self.archetypes.len() {
+            return None;
+        }
+
+        unsafe {
+            // Safety: this pointer always is into self, and since we are adding a component to
+            // the archetype descriptor, this means that the destination_archetype is always a different
+            // one than the source archetype. As such, we can safely do this rather than needing to go
+            // through split_at_mut() and remapping indices.
+            let source_archetype: *mut Archetype = self
+                .archetypes
+                .get_unchecked_mut(source_archetype_index as usize);
+
+            let new_archetype_descriptor = (*source_archetype)
+                .descriptor()
+                .add_component(component_descriptor)?;
+            let (destination_archetype_index, destination_archetype) =
+                self.find_or_create_archetype(&new_archetype_descriptor)?;
+
+            Some((
+                &mut *source_archetype,
+                destination_archetype_index,
+                destination_archetype,
+            ))
+        }
+    }
 
     pub(crate) fn find_or_create_archetype(
         &mut self,
