@@ -88,7 +88,7 @@ impl ArchetypeDescriptor {
             Err(insertion_index) => {
                 let mut v = self.clone();
                 for i in insertion_index..self.len as usize + 1 {
-                    v.components[i + 1] = v.components()[i].clone();
+                    v.components[i + 1] = self.components[i].clone();
                 }
                 v.components[insertion_index] = component_descriptor.clone();
 

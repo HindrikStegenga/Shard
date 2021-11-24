@@ -32,9 +32,21 @@ fn test_registry() {
     let component = component.unwrap();
     assert_eq!(*component, B::default());
 
-    let entity = registry.remove_entity::<(B, A)>(entity);
-    assert!(entity.is_some());
-    let (b, a) = entity.unwrap();
+    let entity_data = registry.remove_entity::<(B, A)>(entity);
+    assert!(entity_data.is_some());
+    let (b, a) = entity_data.unwrap();
     assert_eq!(a, A::default());
     assert_eq!(b, B::default());
+
+    let entity = registry.create_entity((A::default(), B::default()));
+    assert!(entity.is_ok());
+    let entity = entity.unwrap();
+    assert!(registry.has_component::<B>(entity));
+    assert!(registry.has_component::<A>(entity));
+
+    assert!(registry.add_component(entity, C::default()).is_ok());
+
+    assert!(registry.has_component::<B>(entity));
+    assert!(registry.has_component::<A>(entity));
+    assert!(registry.has_component::<C>(entity));
 }

@@ -96,9 +96,15 @@ impl Registry {
                         .get_entity_entry_mut(swapped_entity)
                         .unwrap()
                         .set_index_in_archetype(index_in_archetype);
+                    let _v = self.entities.destroy_entity(entity);
+                    debug_assert!(_v);
                     Some(value)
                 }
-                (value, false) => Some(value),
+                (value, false) => {
+                    let _v = self.entities.destroy_entity(entity);
+                    debug_assert!(_v);
+                    Some(value)
+                }
             };
         }
     }
@@ -174,13 +180,13 @@ impl Registry {
                 .set_index_in_archetype(entry.index_in_archetype());
         }
 
-        // copy from end to end.
-        let new_source_entity_index_in_archetype = source_archetype.len() - 1;
-        let destination_entity_index_in_archetype = destination_archetype.len() - 1;
-
         unsafe {
             // Make space in the destination archetype.
             destination_archetype.push_uninitialized_entity();
+
+            // copy from end to end.
+            let new_source_entity_index_in_archetype = source_archetype.len() - 1;
+            let destination_entity_index_in_archetype = destination_archetype.len() - 1;
             // Write common components.
             Archetype::copy_common_components_between_archetypes_unchecked(
                 source_archetype,
@@ -199,14 +205,14 @@ impl Registry {
 
             // Make the source archetype forget the old entity.
             source_archetype.decrement_len_unchecked();
+
+            // Update the original entity entry to point to destination archetype and index in archetype.
+            let entity_entry = self.entities.get_entity_entry_mut(entity).unwrap();
+            entity_entry.set_archetype_index(destination_archetype_index);
+            entity_entry.set_index_in_archetype(destination_entity_index_in_archetype);
+
+            Ok(())
         }
-
-        // Update the original entity entry to point to destination archetype and index in archetype.
-        let entity_entry = self.entities.get_entity_entry_mut(entity).unwrap();
-        entity_entry.set_archetype_index(destination_archetype_index);
-        entity_entry.set_index_in_archetype(destination_entity_index_in_archetype);
-
-        Ok(())
     }
 
     pub fn remove_component<C: Component>(&mut self, entity: Entity) -> Result<C, ()> {
