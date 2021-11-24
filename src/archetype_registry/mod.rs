@@ -158,6 +158,16 @@ impl ArchetypeRegistry {
             }
         };
     }
+
+    #[inline(always)]
+    pub(crate) unsafe fn get_unchecked(&self, index: u16) -> &Archetype {
+        self.archetypes.get_unchecked(index as usize)
+    }
+
+    #[inline(always)]
+    pub(crate) unsafe fn get_unchecked_mut(&mut self, index: u16) -> &mut Archetype {
+        self.archetypes.get_unchecked_mut(index as usize)
+    }
 }
 
 impl Index<u16> for ArchetypeRegistry {

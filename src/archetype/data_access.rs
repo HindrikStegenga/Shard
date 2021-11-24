@@ -74,7 +74,7 @@ impl Archetype {
             self.descriptor.archetype_id()
         );
 
-        G::slice_unchecked_mut(&self.pointers, self.entity_count as usize)
+        G::slice_unchecked_mut(&self.pointers, self.len() as usize)
     }
 
     /// Returns a tuple of component slices to the archetype's data.
@@ -91,7 +91,7 @@ impl Archetype {
             self.descriptor.archetype_id()
         );
 
-        G::slice_unchecked(&self.pointers, self.entity_count as usize)
+        G::slice_unchecked(&self.pointers, self.len() as usize)
     }
 
     /// Returns the slices for the components in [`G`], provided that archetype itself contains a superset of G.
@@ -104,7 +104,7 @@ impl Archetype {
     ) -> G::SliceRefTuple {
         debug_assert!(G::DESCRIPTOR.is_valid());
         let pointers = self.get_fuzzy_pointers_unchecked::<G>();
-        G::slice_unchecked(&pointers, self.entity_count as usize)
+        G::slice_unchecked(&pointers, self.len() as usize)
     }
 
     /// Returns the mutable slices for the components in [`G`], provided that archetype itself contains a superset of G.
@@ -117,34 +117,34 @@ impl Archetype {
     ) -> G::SliceMutRefTuple {
         debug_assert!(G::DESCRIPTOR.is_valid());
         let pointers = self.get_fuzzy_pointers_unchecked::<G>();
-        G::slice_unchecked_mut(&pointers, self.entity_count as usize)
+        G::slice_unchecked_mut(&pointers, self.len() as usize)
     }
 }
 
 impl Archetype {
     /// Returns the amount of entities currently stored in the archetype.
-    pub fn len(&self) -> u32 {
+    pub(crate) fn len(&self) -> u32 {
         self.entity_count
     }
 
     /// Returns the current capacity of the archetype.
-    pub fn capacity(&self) -> u32 {
+    pub(crate) fn capacity(&self) -> u32 {
         self.capacity
     }
 
     /// Returns whether the archetype is full or not.
-    pub fn is_full(&self) -> bool {
-        self.entity_count == self.capacity
+    pub(crate) fn is_full(&self) -> bool {
+        self.entity_count == self.capacity()
     }
 
     /// Returns a reference to the internal slice storing entity metadata.
     pub(crate) fn entity_metadata(&self) -> &[EntityMetadata] {
-        unsafe { &*slice_from_raw_parts(self.entity_metadata, self.entity_count as usize) }
+        unsafe { &*slice_from_raw_parts(self.entity_metadata, self.len() as usize) }
     }
 
     /// Returns a mutable reference to the internal slice storing entity metadata.
     pub(crate) fn entity_metadata_mut(&mut self) -> &mut [EntityMetadata] {
-        unsafe { &mut *slice_from_raw_parts_mut(self.entity_metadata, self.entity_count as usize) }
+        unsafe { &mut *slice_from_raw_parts_mut(self.entity_metadata, self.len() as usize) }
     }
 
     /// Pushes a given entity/component-tuple into the archetype's backing memory.
@@ -165,7 +165,7 @@ impl Archetype {
             self.descriptor.archetype_id()
         );
         self.resize_if_necessary();
-        let entity_index = self.entity_count;
+        let entity_index = self.len();
         self.write_entity_unchecked(entity_index, metadata, entity);
         self.entity_count += 1;
         entity_index
@@ -176,7 +176,7 @@ impl Archetype {
     /// The metadata is not set either.
     pub(crate) unsafe fn push_uninitialized_entity(&mut self) -> u32 {
         self.resize_if_necessary();
-        let entity_index = self.entity_count;
+        let entity_index = self.len();
         self.entity_count += 1;
         entity_index
     }
@@ -255,15 +255,15 @@ impl Archetype {
     /// # Safety:
     /// - [`index`] must be smaller than the amount of entities in the archetype.
     pub(crate) unsafe fn swap_drop_unchecked(&mut self, index: u32) -> bool {
-        debug_assert!(index < self.entity_count);
-        if index == self.entity_count - 1 {
+        debug_assert!(index < self.len());
+        if index == self.len() - 1 {
             // Is the last one, so just drop it.
             self.drop_entity(index);
             self.entity_count -= 1;
             false
         } else {
-            self.swap_entities(index, self.entity_count - 1);
-            self.drop_entity(self.entity_count - 1);
+            self.swap_entities(index, self.len() - 1);
+            self.drop_entity(self.len() - 1);
             self.entity_count -= 1;
             true
         }
@@ -276,11 +276,11 @@ impl Archetype {
     /// # Safety:
     /// - [`index`] must be smaller than the amount of entities in the archetype.
     pub(crate) unsafe fn swap_to_last_unchecked(&mut self, index: u32) -> bool {
-        debug_assert!(index < self.entity_count);
-        return if index == self.entity_count - 1 {
+        debug_assert!(index < self.len());
+        return if index == self.len() - 1 {
             false
         } else {
-            self.swap_entities(index, self.entity_count - 1);
+            self.swap_entities(index, self.len() - 1);
             true
         };
     }
@@ -298,15 +298,15 @@ impl Archetype {
         &mut self,
         index: u32,
     ) -> (G, bool) {
-        debug_assert!(index < self.entity_count);
-        if index == self.entity_count - 1 {
+        debug_assert!(index < self.len());
+        if index == self.len() - 1 {
             // Is the last one, so just drop it.
             let data: G = self.read_components_exact_unchecked::<G>(index);
             self.entity_count -= 1;
             (data, false)
         } else {
-            self.swap_entities(index, self.entity_count - 1);
-            let data: G = self.read_components_exact_unchecked(self.entity_count - 1);
+            self.swap_entities(index, self.len() - 1);
+            let data: G = self.read_components_exact_unchecked(self.len() - 1);
             self.entity_count -= 1;
             (data, true)
         }
@@ -343,7 +343,7 @@ impl Archetype {
     /// Does not deallocate the memory.
     pub(crate) unsafe fn drop_entities(&mut self) {
         for (idx, descriptor) in self.descriptor.components().iter().enumerate() {
-            (descriptor.fns.drop_handler)(self.pointers[idx], self.entity_count as usize);
+            (descriptor.fns.drop_handler)(self.pointers[idx], self.len() as usize);
         }
     }
 
@@ -369,7 +369,7 @@ impl Archetype {
     /// - Deallocates if the new capacity is smaller or equal to zero.
     /// - Deallocates if the new capacity exceeds [`MAX_ENTITIES_PER_ARCHETYPE`]. TODO: This is weird?
     pub(super) unsafe fn resize_capacity(&mut self, change_in_entity_count: isize) {
-        let old_capacity = self.capacity;
+        let old_capacity = self.capacity();
         let new_capacity = old_capacity as isize + change_in_entity_count;
         if new_capacity <= 0 || new_capacity >= MAX_ENTITIES_PER_ARCHETYPE as isize {
             self.dealloc();
@@ -426,7 +426,7 @@ impl Archetype {
             *pointer = core::ptr::null_mut();
         }
         let layout = Layout::from_size_align_unchecked(
-            size_of::<EntityMetadata>() * self.capacity as usize,
+            size_of::<EntityMetadata>() * self.capacity() as usize,
             align_of::<EntityMetadata>(),
         );
         dealloc(self.entity_metadata as *mut u8, layout);
@@ -454,10 +454,10 @@ impl Archetype {
     /// Resizes the backing memory by the default amount if necessary.
     unsafe fn resize_if_necessary(&mut self) {
         if self.is_full() {
-            let additional_capacity = if self.capacity == 0 {
+            let additional_capacity = if self.capacity() == 0 {
                 DEFAULT_ARCHETYPE_ALLOCATION_SIZE
             } else {
-                self.capacity as usize
+                self.capacity() as usize
             };
             self.resize_capacity(additional_capacity as isize);
         }

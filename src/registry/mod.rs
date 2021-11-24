@@ -1,6 +1,5 @@
 use crate::archetype::{Archetype, EntityMetadata};
 use crate::archetype_registry::ArchetypeRegistry;
-use crate::entity_registry::EntityEntry;
 use crate::{component_group::ComponentGroup, entity_registry::EntityRegistry, Component, Entity};
 
 #[cfg(test)]
@@ -56,7 +55,7 @@ impl Registry {
             None => return false,
             Some(v) => v,
         };
-        let mut archetype = &mut self.archetypes[entry.archetype_index()];
+        let archetype = unsafe { self.archetypes.get_unchecked_mut(entry.archetype_index()) };
         let index_in_archetype = entry.index_in_archetype();
         unsafe {
             if archetype.swap_drop_unchecked(index_in_archetype) {
@@ -83,7 +82,7 @@ impl Registry {
             None => return None,
             Some(v) => v,
         };
-        let archetype = &mut self.archetypes[entry.archetype_index()];
+        let archetype = unsafe { self.archetypes.get_unchecked_mut(entry.archetype_index()) };
         let index_in_archetype = entry.index_in_archetype();
         unsafe {
             return match archetype.swap_remove_unchecked::<G>(index_in_archetype) {
@@ -116,7 +115,7 @@ impl Registry {
             None => return false,
             Some(v) => v,
         };
-        let archetype = &self.archetypes[entry.archetype_index()];
+        let archetype = unsafe { self.archetypes.get_unchecked(entry.archetype_index()) };
         archetype.descriptor().has_component::<C>()
     }
 
@@ -128,7 +127,8 @@ impl Registry {
             Some(v) => v,
         };
         unsafe {
-            self.archetypes[entry.archetype_index()]
+            self.archetypes
+                .get_unchecked(entry.archetype_index())
                 .get_component_unchecked::<C>(entry.index_in_archetype())
         }
         .into()
@@ -142,7 +142,8 @@ impl Registry {
             Some(v) => v,
         };
         unsafe {
-            self.archetypes[entry.archetype_index()]
+            self.archetypes
+                .get_unchecked_mut(entry.archetype_index())
                 .get_component_unchecked_mut::<C>(entry.index_in_archetype())
         }
         .into()
@@ -215,14 +216,14 @@ impl Registry {
         }
     }
 
-    pub fn remove_component<C: Component>(&mut self, entity: Entity) -> Result<C, ()> {
+    pub fn remove_component<C: Component>(&mut self, _entity: Entity) -> Result<C, ()> {
         todo!()
     }
 
     pub fn replace_component<C1: Component, C2: Component>(
         &mut self,
-        entity: Entity,
-        new_component: C2,
+        _entity: Entity,
+        _new_component: C2,
     ) -> Result<C1, C2> {
         todo!()
     }
