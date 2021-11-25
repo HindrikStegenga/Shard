@@ -49,4 +49,6 @@ fn test_registry() {
     assert!(registry.has_component::<B>(entity));
     assert!(registry.has_component::<A>(entity));
     assert!(registry.has_component::<C>(entity));
+
+    registry.destroy_entity(entity);
 }

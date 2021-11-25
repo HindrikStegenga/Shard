@@ -228,6 +228,10 @@ impl Registry {
         todo!()
     }
 
+    pub fn iter_all_entities<'a>(&'a self) -> impl Iterator<Item = Entity> + 'a {
+        self.entities.into_iter()
+    }
+
     /// Returns a tuple of component slices if the exact archetype matching the component group exists.
     pub fn iter_components_exact<'a, G: ComponentGroup<'a>>(&'a self) -> G::SliceRefTuple {
         match self.archetypes.find_archetype(G::DESCRIPTOR.archetype()) {
