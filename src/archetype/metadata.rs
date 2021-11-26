@@ -17,7 +17,6 @@ impl Default for EntityMetadata {
 impl EntityMetadata {
     /// Creates a new metadata pointing to the given entity.
     /// The 8 metadata bits are set to 0.
-    #[inline(always)]
     pub(crate) const fn new(entity: Entity) -> Self {
         Self {
             value: unsafe { Entity::new_unchecked(entity.index(), 0) },
@@ -25,13 +24,11 @@ impl EntityMetadata {
     }
 
     /// Get a reference to the entity metadata's value.
-    #[inline(always)]
     pub(crate) const fn entity(&self) -> Entity {
         unsafe { Entity::new_unchecked(self.value.index(), 0) }
     }
 
     /// Returns the metadata byte associated with the entity.
-    #[inline(always)]
     #[allow(dead_code)]
     pub(crate) const fn meta_byte(&self) -> u8 {
         self.value.version()

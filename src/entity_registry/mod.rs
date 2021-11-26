@@ -23,22 +23,21 @@ pub(crate) struct EntityEntry {
 }
 
 impl EntityEntry {
-    #[inline(always)]
     pub fn version(&self) -> u8 {
         self.values[0]
     }
-    #[inline(always)]
+
     pub fn set_version(&mut self, version: u8) {
         self.values[0] = version;
     }
-    #[inline(always)]
+
     pub fn is_valid(&self) -> bool {
         // Guaranteed to be properly aligned.
         unsafe {
             *(self.values.as_ptr().offset(4) as *const u8 as *const u16) != INVALID_ARCHETYPE_INDEX
         }
     }
-    #[inline(always)]
+
     pub fn set_invalid(&mut self) {
         // Guaranteed to be properly aligned.
         unsafe {
@@ -46,20 +45,19 @@ impl EntityEntry {
         }
     }
 
-    #[inline(always)]
     pub fn set_archetype_index(&mut self, archetype_index: u16) {
         // Guaranteed to be properly aligned.
         unsafe { *(self.values.as_ptr().offset(4) as *mut u8 as *mut u16) = archetype_index }
     }
-    #[inline(always)]
+
     pub fn archetype_index(&self) -> u16 {
         unsafe { *(self.values.as_ptr().offset(4) as *const u16) }
     }
-    #[inline(always)]
+
     pub fn index_in_archetype(&self) -> u32 {
         unsafe { ((*(self.values.as_ptr() as *const u32)) & 0x00FFFFFF) >> 8 }
     }
-    #[inline(always)]
+
     pub fn set_index_in_archetype(&mut self, index: u32) {
         let v = self.values[0];
         let index = index << 8;
@@ -87,14 +85,12 @@ impl<'registry> ValidEntityRef<'registry> {
     }
 
     /// Sets the archetype index. Panics in debug mode on invalid values!!
-    #[inline(always)]
     pub(crate) fn set_archetype_index(&mut self, archetype_index: u16) {
         debug_assert!(archetype_index != INVALID_ARCHETYPE_INDEX);
         self.entry.set_archetype_index(archetype_index);
     }
 
     /// Sets the index in the archetype. Panics in debug mode on invalid values!!
-    #[inline(always)]
     pub(crate) fn set_index_in_archetype(&mut self, index_in_archetype: u32) {
         debug_assert!(index_in_archetype < MAX_ENTITIES_PER_ARCHETYPE);
         self.entry.set_index_in_archetype(index_in_archetype);
@@ -102,7 +98,6 @@ impl<'registry> ValidEntityRef<'registry> {
 }
 
 impl Default for EntityRegistry {
-    #[inline(always)]
     fn default() -> Self {
         Self {
             entities: Vec::with_capacity(8192),

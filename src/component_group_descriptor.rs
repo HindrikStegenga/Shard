@@ -3,6 +3,12 @@ use crate::component_descriptor::ComponentDescriptor;
 use crate::copy_component_descriptor_from_to;
 use crate::MAX_COMPONENTS_PER_ENTITY;
 
+/// Describes a group of components.
+/// Also contains mappings to and from sorted and unsorted variants.
+/// The reason for this is that a component group as type may have a different ordering of tuple elements,
+/// but in the ECS itself it should still be the same group. The mappings in this struct describe how
+/// to map from and to those variants. As such, each unique ordering of components in a tuple has
+/// it's own component group descriptor.
 #[derive(Debug)]
 pub struct ComponentGroupDescriptor {
     archetype: ArchetypeDescriptor,
@@ -17,35 +23,32 @@ impl ComponentGroupDescriptor {
         unsorted_to_sorted: [0; MAX_COMPONENTS_PER_ENTITY],
     };
 
-    #[inline(always)]
     pub const fn is_valid(&self) -> bool {
         self.archetype.is_valid()
     }
 
-    #[inline(always)]
     pub const fn archetype(&self) -> &ArchetypeDescriptor {
         &self.archetype
     }
-    #[inline(always)]
+
     pub const fn as_sorted(&self, index: u8) -> &ComponentDescriptor {
         unsafe { &self.archetype.components_unchecked()[index as usize] }
     }
-    #[inline(always)]
+
     pub const fn as_unsorted(&self, index: u8) -> &ComponentDescriptor {
         unsafe {
             &self.archetype.components_unchecked()[self.sorted_to_unsorted[index as usize] as usize]
         }
     }
 
-    #[inline(always)]
     pub const fn sorted_to_unsorted(&self, index: u8) -> u8 {
         self.sorted_to_unsorted[index as usize]
     }
-    #[inline(always)]
+
     pub const fn unsorted_to_sorted(&self, index: u8) -> u8 {
         self.unsorted_to_sorted[index as usize]
     }
-    #[inline(always)]
+
     pub const fn len(&self) -> u8 {
         self.archetype.len()
     }

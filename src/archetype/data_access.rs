@@ -65,7 +65,6 @@ impl Archetype {
     /// - Must be called exactly with the component group contained in the archetype.
     /// - a compatible group type is also accepted.
     /// - [`G`] must have a valid archetype descriptor.
-    #[inline(always)]
     pub(crate) unsafe fn get_slices_unchecked_exact_mut<'a, G: ComponentGroup<'a>>(
         &'a mut self,
     ) -> G::SliceMutRefTuple {
@@ -82,7 +81,6 @@ impl Archetype {
     /// - Must be called exactly with the component group contained in the archetype.
     /// - a compatible group type is also accepted.
     /// - [`G`] must have a valid archetype descriptor.
-    #[inline(always)]
     pub(crate) unsafe fn get_slices_unchecked_exact<'a, G: ComponentGroup<'a>>(
         &'a self,
     ) -> G::SliceRefTuple {
@@ -435,7 +433,6 @@ impl Archetype {
     }
 
     /// Returns the pointers, offset by [`index`] elements.
-    #[inline(always)]
     unsafe fn offset_sorted_pointers_unchecked(
         &self,
         index: u32,

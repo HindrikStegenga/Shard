@@ -10,7 +10,9 @@ use sorted_archetype_key::*;
 
 use crate::archetype::Archetype;
 use crate::archetype_descriptor::ArchetypeDescriptor;
+use crate::archetype_registry::iter::ArchetypeIter;
 use crate::component_descriptor::ComponentDescriptor;
+use crate::component_group::ComponentGroup;
 use crate::constants::*;
 
 const DEFAULT_VECTOR_CAPACITY: usize = 64;
@@ -161,14 +163,18 @@ impl ArchetypeRegistry {
         };
     }
 
-    #[inline(always)]
     pub(crate) unsafe fn get_unchecked(&self, index: u16) -> &Archetype {
         self.archetypes.get_unchecked(index as usize)
     }
 
-    #[inline(always)]
     pub(crate) unsafe fn get_unchecked_mut(&mut self, index: u16) -> &mut Archetype {
         self.archetypes.get_unchecked_mut(index as usize)
+    }
+
+    pub(crate) fn iter_components_matching<'a, G: ComponentGroup<'a>>(
+        &'a self,
+    ) -> ArchetypeIter<'a, G> {
+        ArchetypeIter::new(&self.sorted_mappings, &self.archetypes)
     }
 }
 
