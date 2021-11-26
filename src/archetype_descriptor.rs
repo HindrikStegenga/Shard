@@ -2,6 +2,11 @@ use crate::component_descriptor::ComponentDescriptor;
 use crate::fnv1a::fnv1a_hash_32;
 use crate::{constants::*, ArchetypeId, Component, ComponentTypeId};
 
+/// Represents a combination of components.
+/// Each component type MUST be unique (i.e. no duplicate component types).
+/// Length must be larger than 0 and lower or equal to [`MAX_COMPONENTS_PER_ENTITY`].
+/// Use the [`ArchetypeDescriptor::is_valid`] function to check for validity.
+/// Any use of an invalid archetype descriptor is considered UB.
 #[derive(Debug, Clone)]
 pub struct ArchetypeDescriptor {
     archetype_id: ArchetypeId,
@@ -10,6 +15,7 @@ pub struct ArchetypeDescriptor {
 }
 
 impl ArchetypeDescriptor {
+    /// The invalid archetype descriptor. Has 0 components and an ArchetypeId of 0.
     pub const INVALID: ArchetypeDescriptor = ArchetypeDescriptor {
         archetype_id: ArchetypeId::INVALID,
         len: 0,
@@ -19,13 +25,11 @@ impl ArchetypeDescriptor {
     /// Returns true if it is a valid archetype.
     /// A valid archetype has a length larger than 0 and smaller than [`MAX_COMPONENTS_PER_ENTITY`].
     /// It also contains no duplicate components.
-    #[inline(always)]
     pub const fn is_valid(&self) -> bool {
         self.archetype_id.is_valid()
     }
 
     /// Creates a new archetype descriptor with the given id, length and components.
-    #[inline(always)]
     pub const fn new(
         archetype_id: ArchetypeId,
         len: u8,
@@ -41,6 +45,7 @@ impl ArchetypeDescriptor {
         }
     }
 
+    /// Computes an archetype ID, returns [`ArchetypeId::INVALID`] if given an invalid combination of components.
     pub(crate) const fn compute_archetype_id(descriptors: &[ComponentDescriptor]) -> ArchetypeId {
         if descriptors.is_empty() {
             return ArchetypeId::INVALID;
@@ -63,7 +68,7 @@ impl ArchetypeDescriptor {
         ArchetypeId::from_u32(fnv1a_hash_32(&bytes, Some(bytes.len())))
     }
 
-    // Returns whether the descriptor provided is contained in self. (i.e. subset inclusion)
+    /// Returns whether the descriptor provided is contained in self. (i.e. subset inclusion)
     pub(crate) const fn contains(&self, descriptor: &ArchetypeDescriptor) -> bool {
         if descriptor.len() > self.len() {
             return false;
@@ -90,7 +95,6 @@ impl ArchetypeDescriptor {
     /// Returns a new archetype with the given component type added to it.
     /// Returns none if the current archetype already contains the component type or it is full.
     #[allow(dead_code)]
-    #[inline(always)]
     pub(crate) fn add_component_from<C: Component>(&self) -> Option<ArchetypeDescriptor> {
         self.add_component(&C::DESCRIPTOR)
     }
@@ -137,20 +141,17 @@ impl ArchetypeDescriptor {
     }
 
     /// Get a the archetype descriptor's archetype id.
-    #[inline(always)]
     pub const fn archetype_id(&self) -> ArchetypeId {
         self.archetype_id
     }
 
     /// Get the archetype descriptor's component count.
-    #[inline(always)]
     pub const fn len(&self) -> u8 {
         self.len
     }
 
     /// Get a reference to the archetype descriptor's components.
     /// This version is const but unsafe, as length is NOT accounted for.
-    #[inline(always)]
     pub const unsafe fn components_unchecked(
         &self,
     ) -> &[ComponentDescriptor; MAX_COMPONENTS_PER_ENTITY] {
@@ -158,7 +159,6 @@ impl ArchetypeDescriptor {
     }
 
     /// Get a reference to the archetype descriptor's components.
-    #[inline(always)]
     pub fn components(&self) -> &[ComponentDescriptor] {
         &self.components[0..self.len as usize]
     }

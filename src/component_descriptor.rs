@@ -28,11 +28,16 @@ macro_rules! copy_component_descriptor_from_to {
     };
 }
 
+/// Groups special function pointers used for memory operations on component instances.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ComponentDescriptorFnPointers {
     pub(crate) drop_handler: unsafe fn(ptr: *mut u8, len: usize),
 }
 
+/// Describes a specific component type.
+/// # Safety:
+/// - [`size`] must not exceed [`u16::MAX`].
+/// - [`align`] must not exceed [`u16::MAX`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct ComponentDescriptor {
     pub(crate) component_type_id: ComponentTypeId,
@@ -92,6 +97,8 @@ impl Into<ArchetypeDescriptor> for ComponentDescriptor {
 }
 
 impl ComponentDescriptor {
+    /// Represents an invalid component descriptor.
+    /// This descriptor must not be used as a valid descriptor.
     pub const INVALID: Self = {
         unsafe fn _dummy_drop_(_ptr: *mut u8, _len: usize) {}
         ComponentDescriptor {
@@ -104,15 +111,8 @@ impl ComponentDescriptor {
         }
     };
 
-    pub fn from_component<C: Component>() -> ComponentDescriptor {
-        Self::new(
-            C::ID,
-            core::mem::size_of::<C>() as u16,
-            core::mem::align_of::<C>() as u16,
-            Self::drop_handler_wrapper::<C>,
-        )
-    }
-
+    /// Creates a new component descriptor from the provided arguments.
+    /// Returns [`ComponentDescriptor::INVALID`] if a valid descriptor cannot be constructed.
     pub fn new(
         component_type_id: ComponentTypeId,
         size: u16,
@@ -131,6 +131,7 @@ impl ComponentDescriptor {
         }
     }
 
+    /// Do not use this manually. It wraps a type erased drop handler.
     pub unsafe fn drop_handler_wrapper<C: Component>(ptr: *mut u8, len: usize) {
         let s = core::slice::from_raw_parts_mut(ptr as *mut ManuallyDrop<C>, len);
         s.iter_mut().for_each(|e| ManuallyDrop::drop(e))

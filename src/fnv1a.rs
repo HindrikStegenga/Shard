@@ -59,7 +59,6 @@ pub(crate) const fn fnv1a_hash_32(bytes: &[u8], limit: Option<usize>) -> u32 {
 /// Computes 32-bits fnv1a hash and xors higher and lower 16-bits.
 /// Up to limit if provided, otherwise slice length.
 /// If limit is zero or exceeds slice length, slice length is used instead.
-#[inline(always)]
 #[allow(dead_code)]
 pub(crate) const fn fnv1a_hash_16_xor(bytes: &[u8], limit: Option<usize>) -> u16 {
     let bytes = fnv1a_hash_32(bytes, limit).to_ne_bytes();
@@ -69,21 +68,18 @@ pub(crate) const fn fnv1a_hash_16_xor(bytes: &[u8], limit: Option<usize>) -> u16
 }
 
 /// Computes 64-bit fnv1a hash from a str.
-#[inline(always)]
 #[allow(dead_code)]
 pub(crate) const fn fnv1a_hash_str_64(input: &str) -> u64 {
     fnv1a_hash_64(input.as_bytes(), None)
 }
 
 /// Computes 32-bit fnv1a hash from a str.
-#[inline(always)]
 #[allow(dead_code)]
 pub(crate) const fn fnv1a_hash_str_32(input: &str) -> u32 {
     fnv1a_hash_32(input.as_bytes(), None)
 }
 
 /// Computes 16-bit fnv1a hash from a str.
-#[inline(always)]
 #[allow(dead_code)]
 pub(crate) const fn fnv1a_hash_str_16_xor(input: &str) -> u16 {
     fnv1a_hash_16_xor(input.as_bytes(), None)

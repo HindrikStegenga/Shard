@@ -25,6 +25,7 @@ pub trait ComponentGroup<'c>: private::SealedComponentGroup + Sized + 'static {
     type SliceRefTuple: 'c;
     type SliceMutRefTuple: 'c;
 
+    /// The descriptor which exactly specifies all components of the component group.
     const DESCRIPTOR: ComponentGroupDescriptor;
 
     /// Returns the sorted pointers given a reference to self.
@@ -43,17 +44,26 @@ pub trait ComponentGroup<'c>: private::SealedComponentGroup + Sized + 'static {
         sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
     ) -> Self::MutRefTuple;
 
+    /// Returns a tuple of slices extracted from the given pointers.
+    /// # Safety:
+    /// - The pointers must be sorted.
     unsafe fn slice_unchecked(
         sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
         len: usize,
     ) -> Self::SliceRefTuple;
 
+    /// Returns a tuple of mutable slices extracted from the given pointers.
+    /// # Safety:
+    /// - The pointers must be sorted.
     unsafe fn slice_unchecked_mut(
         sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
         len: usize,
     ) -> Self::SliceMutRefTuple;
 
+    /// Returns an tuple of empty slices.
     fn empty_slice() -> Self::SliceRefTuple;
+
+    /// Returns an tuple of empty mutable slices.
     fn empty_slice_mut() -> Self::SliceMutRefTuple;
 }
 
@@ -67,31 +77,26 @@ impl<'c, T: Component + SealedComponentGroup> ComponentGroup<'c> for T {
     const DESCRIPTOR: ComponentGroupDescriptor =
         ComponentGroupDescriptor::new(&[define_component_descriptor!(T)]);
 
-    #[inline(always)]
     unsafe fn as_sorted_pointers(&mut self, ptrs: &mut [*mut u8; MAX_COMPONENTS_PER_ENTITY]) {
         ptrs[0] = self as *mut T as *mut u8;
     }
 
-    #[inline(always)]
     unsafe fn read_from_sorted_pointers(pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY]) -> Self {
         core::ptr::read(pointers[0] as *mut T)
     }
 
-    #[inline(always)]
     unsafe fn pointers_as_ref_tuple(
         sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
     ) -> Self::RefTuple {
         &*(sorted_pointers[0] as *mut T)
     }
 
-    #[inline(always)]
     unsafe fn pointers_as_mut_ref_tuple(
         sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
     ) -> Self::MutRefTuple {
         &mut *(sorted_pointers[0] as *mut T)
     }
 
-    #[inline(always)]
     unsafe fn slice_unchecked(
         sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
         len: usize,
@@ -99,7 +104,6 @@ impl<'c, T: Component + SealedComponentGroup> ComponentGroup<'c> for T {
         core::slice::from_raw_parts(sorted_pointers[0] as *const T, len)
     }
 
-    #[inline(always)]
     unsafe fn slice_unchecked_mut(
         sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
         len: usize,
@@ -107,12 +111,10 @@ impl<'c, T: Component + SealedComponentGroup> ComponentGroup<'c> for T {
         core::slice::from_raw_parts_mut(sorted_pointers[0] as *mut T, len)
     }
 
-    #[inline(always)]
     fn empty_slice() -> Self::SliceRefTuple {
         &[]
     }
 
-    #[inline(always)]
     fn empty_slice_mut() -> Self::SliceMutRefTuple {
         &mut []
     }
@@ -129,35 +131,29 @@ macro_rules! impl_component_tuple {
             type SliceRefTuple = ($(&'s [$elem]),*);
             type SliceMutRefTuple = ($(&'s mut [$elem]),*);
 
-            #[inline(always)]
             fn empty_slice() -> Self::SliceRefTuple {
                 ($(&[] as &[$elem]), *)
             }
 
-            #[inline(always)]
             fn empty_slice_mut() -> Self::SliceMutRefTuple {
                 ($(&mut [] as &mut [$elem]), *)
             }
 
-
             const DESCRIPTOR: ComponentGroupDescriptor =
                 ComponentGroupDescriptor::new(&[$(define_component_descriptor!($elem)), *]);
 
-            #[inline(always)]
             unsafe fn as_sorted_pointers(&mut self, ptrs: &mut [*mut u8; MAX_COMPONENTS_PER_ENTITY]) {
                 $(
                     ptrs[Self::DESCRIPTOR.unsorted_to_sorted($elem_idx) as usize] = &mut tuple_index!(self, $elem_idx) as *mut $elem as *mut u8;
                 )*
             }
 
-            #[inline(always)]
             unsafe fn read_from_sorted_pointers(pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY]) -> Self {
                 ($(
                     core::ptr::read(pointers[Self::DESCRIPTOR.unsorted_to_sorted($elem_idx) as usize] as *mut $elem)
                 ),*)
             }
 
-            #[inline(always)]
             unsafe fn pointers_as_ref_tuple(
                 sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
             ) -> Self::RefTuple {
@@ -166,7 +162,6 @@ macro_rules! impl_component_tuple {
                 )*)
             }
 
-            #[inline(always)]
             unsafe fn pointers_as_mut_ref_tuple(
                 sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
             ) -> Self::MutRefTuple {
@@ -175,7 +170,6 @@ macro_rules! impl_component_tuple {
                 )*)
             }
 
-            #[inline(always)]
             unsafe fn slice_unchecked(
                 sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
                 len: usize,
@@ -185,7 +179,6 @@ macro_rules! impl_component_tuple {
                 )*)
             }
 
-            #[inline(always)]
             unsafe fn slice_unchecked_mut(
                 sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
                 len: usize,

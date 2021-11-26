@@ -195,31 +195,22 @@ mod tests {
     #[test]
     fn test_compute_sorted_descriptors() {
         let descriptors: [ComponentDescriptor; 3] = [
-            ComponentDescriptor::from_component::<TestComponentA>(),
-            ComponentDescriptor::from_component::<TestComponentB>(),
-            ComponentDescriptor::from_component::<TestComponentC>(),
+            TestComponentA::DESCRIPTOR,
+            TestComponentB::DESCRIPTOR,
+            TestComponentC::DESCRIPTOR,
         ];
         let result = ComponentGroupDescriptor::compute_sorted_descriptors(&descriptors);
-        assert_eq!(
-            ComponentDescriptor::from_component::<TestComponentA>(),
-            result[0]
-        );
-        assert_eq!(
-            ComponentDescriptor::from_component::<TestComponentB>(),
-            result[1]
-        );
-        assert_eq!(
-            ComponentDescriptor::from_component::<TestComponentC>(),
-            result[2]
-        );
+        assert_eq!(TestComponentA::DESCRIPTOR, result[0]);
+        assert_eq!(TestComponentB::DESCRIPTOR, result[1]);
+        assert_eq!(TestComponentB::DESCRIPTOR, result[2]);
     }
 
     #[test]
     fn test_compute_sort_mappings() {
         let unsorted_descriptors: [ComponentDescriptor; 3] = [
-            ComponentDescriptor::from_component::<TestComponentA>(),
-            ComponentDescriptor::from_component::<TestComponentB>(),
-            ComponentDescriptor::from_component::<TestComponentC>(),
+            TestComponentA::DESCRIPTOR,
+            TestComponentB::DESCRIPTOR,
+            TestComponentC::DESCRIPTOR,
         ];
         let sorted_descriptors =
             ComponentGroupDescriptor::compute_sorted_descriptors(&unsorted_descriptors);
@@ -233,9 +224,9 @@ mod tests {
         assert_eq!(sorted_to_unsorted[0..3], [0, 1, 2]);
 
         let unsorted_descriptors: [ComponentDescriptor; 3] = [
-            ComponentDescriptor::from_component::<TestComponentB>(),
-            ComponentDescriptor::from_component::<TestComponentC>(),
-            ComponentDescriptor::from_component::<TestComponentA>(),
+            TestComponentB::DESCRIPTOR,
+            TestComponentC::DESCRIPTOR,
+            TestComponentA::DESCRIPTOR,
         ];
 
         let sorted_descriptors =
