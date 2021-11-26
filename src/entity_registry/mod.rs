@@ -1,4 +1,4 @@
-use alloc::vec::{IntoIter, Vec};
+use alloc::vec::Vec;
 
 use crate::{
     Entity, INVALID_ARCHETYPE_INDEX, INVALID_ENTITY_HANDLE_VALUE, MAX_ENTITIES_PER_ARCHETYPE,
@@ -211,13 +211,8 @@ impl EntityRegistry {
         self.next_free_slot = entity.index();
         return true;
     }
-}
 
-impl<'a> IntoIterator for &'a EntityRegistry {
-    type Item = Entity;
-    type IntoIter = EntityIter<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
+    pub(crate) fn iter<'a>(&'a self) -> impl Iterator<Item = Entity> + 'a {
         EntityIter::new(&self.entities)
     }
 }

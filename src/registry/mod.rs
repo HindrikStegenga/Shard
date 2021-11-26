@@ -228,8 +228,9 @@ impl Registry {
         todo!()
     }
 
+    /// Iterates over all entities in the registry.
     pub fn iter_all_entities<'a>(&'a self) -> impl Iterator<Item = Entity> + 'a {
-        self.entities.into_iter()
+        self.entities.iter()
     }
 
     /// Returns a tuple of component slices if the exact archetype matching the component group exists.

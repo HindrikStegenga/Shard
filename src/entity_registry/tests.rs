@@ -47,4 +47,8 @@ fn test_entity_registry() {
         assert!(registry.get_entity_entry(*entity).is_none());
         assert!(registry.get_entity_entry_mut(*entity).is_none());
     });
+
+    for entity in registry.iter() {
+        valid_entities.contains(&entity);
+    }
 }

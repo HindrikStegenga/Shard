@@ -1,6 +1,5 @@
 use crate::component_descriptor::{ComponentDescriptor, ComponentDescriptorFnPointers};
 use crate::{define_component_descriptor, Component, MAX_COMPONENTS_PER_ENTITY};
-use core::marker::PhantomData;
 
 use crate::component_group_descriptor::ComponentGroupDescriptor;
 use private::SealedComponentGroup;

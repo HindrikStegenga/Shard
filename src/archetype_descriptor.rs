@@ -63,6 +63,30 @@ impl ArchetypeDescriptor {
         ArchetypeId::from_u32(fnv1a_hash_32(&bytes, Some(bytes.len())))
     }
 
+    // Returns whether the descriptor provided is contained in self. (i.e. subset inclusion)
+    pub(crate) const fn contains(&self, descriptor: &ArchetypeDescriptor) -> bool {
+        if descriptor.len() > self.len() {
+            return false;
+        }
+        let mut i = 0;
+        'outer_loop: while i < descriptor.len() {
+            let mut j = 0;
+            while j < self.len() {
+                if self.components[j as usize].component_type_id.into_u16()
+                    == descriptor.components[i as usize]
+                        .component_type_id
+                        .into_u16()
+                {
+                    i += 1;
+                    continue 'outer_loop;
+                }
+                j += 1;
+            }
+            return false;
+        }
+        return true;
+    }
+
     /// Returns a new archetype with the given component type added to it.
     /// Returns none if the current archetype already contains the component type or it is full.
     #[allow(dead_code)]
@@ -137,5 +161,33 @@ impl ArchetypeDescriptor {
     #[inline(always)]
     pub fn components(&self) -> &[ComponentDescriptor] {
         &self.components[0..self.len as usize]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::component_group::ComponentGroup;
+    use crate::test_components::*;
+
+    #[test]
+    fn test_archetype_descriptor_contains() {
+        assert_eq!(
+            <(A, B) as ComponentGroup>::DESCRIPTOR
+                .archetype()
+                .contains(A::DESCRIPTOR.archetype()),
+            true
+        );
+        assert_eq!(
+            <(A, B) as ComponentGroup>::DESCRIPTOR
+                .archetype()
+                .contains(B::DESCRIPTOR.archetype()),
+            true
+        );
+        assert_eq!(
+            <(A, B) as ComponentGroup>::DESCRIPTOR
+                .archetype()
+                .contains(C::DESCRIPTOR.archetype()),
+            false
+        );
     }
 }
