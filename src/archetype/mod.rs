@@ -20,18 +20,15 @@ pub(crate) struct Archetype {
 }
 
 impl Archetype {
-    /// Creates an archetype without memory allocated for it.
+    /// Creates an archetype with the default amount of memory allocated for it.
     /// Panics if the provided archetype descriptor is invalid.
     #[allow(dead_code)]
     pub fn new(archetype_descriptor: &ArchetypeDescriptor) -> Archetype {
         assert!(archetype_descriptor.is_valid());
-        Self {
-            descriptor: archetype_descriptor.clone(),
-            pointers: [core::ptr::null_mut(); MAX_COMPONENTS_PER_ENTITY],
-            entity_metadata: core::ptr::null_mut(),
-            entity_count: 0,
-            capacity: 0,
-        }
+        Self::with_capacity(
+            archetype_descriptor,
+            DEFAULT_ARCHETYPE_ALLOCATION_SIZE as u32,
+        )
     }
 
     /// Allocates an archetype with a given capacity for storing data into it.
@@ -52,7 +49,7 @@ impl Archetype {
         if capacity > 0 && capacity <= MAX_ENTITIES_PER_ARCHETYPE {
             unsafe {
                 let layout = Layout::from_size_align_unchecked(
-                    size_of::<EntityMetadata>(),
+                    size_of::<EntityMetadata>() * capacity as usize,
                     align_of::<EntityMetadata>(),
                 );
                 archetype.entity_metadata = alloc(layout) as *mut EntityMetadata;
@@ -60,7 +57,7 @@ impl Archetype {
 
                 for (index, component) in archetype.descriptor.components().iter().enumerate() {
                     let layout = Layout::from_size_align_unchecked(
-                        component.size as usize,
+                        component.size as usize * capacity as usize,
                         component.align as usize,
                     );
                     archetype.pointers[index] = alloc(layout);

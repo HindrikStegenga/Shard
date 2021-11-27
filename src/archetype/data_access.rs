@@ -221,6 +221,7 @@ impl Archetype {
         metadata: EntityMetadata,
         mut entity: G,
     ) {
+        debug_assert!(index < self.capacity());
         debug_assert!(G::DESCRIPTOR.is_valid());
         debug_assert_eq!(
             G::DESCRIPTOR.archetype().archetype_id(),
@@ -229,7 +230,10 @@ impl Archetype {
         let mut pointers = [core::ptr::null_mut(); MAX_COMPONENTS_PER_ENTITY];
         entity.as_sorted_pointers(&mut pointers);
         for i in 0..G::DESCRIPTOR.len() as usize {
-            let component = G::DESCRIPTOR.archetype().components().get_unchecked(i);
+            let component = G::DESCRIPTOR
+                .archetype()
+                .components_unchecked()
+                .get_unchecked(i);
             let dst_pointer = self
                 .pointers
                 .get_unchecked(i)

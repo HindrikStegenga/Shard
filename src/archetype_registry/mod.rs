@@ -59,11 +59,12 @@ impl ArchetypeRegistry {
         if len > MAX_COMPONENTS_PER_ENTITY || !archetype_descriptor.is_valid() {
             return None;
         }
-        return match self.sorted_mappings[len]
+        return match self.sorted_mappings[len - 1]
             .binary_search_by_key(&archetype_descriptor.archetype_id(), |e| e.id)
         {
             Ok(found_index) => Some(
-                &self.archetypes[self.sorted_mappings[len][found_index].archetype_index as usize],
+                &self.archetypes
+                    [self.sorted_mappings[len - 1][found_index].archetype_index as usize],
             ),
             Err(_) => None,
         };
@@ -78,12 +79,12 @@ impl ArchetypeRegistry {
         if len > MAX_COMPONENTS_PER_ENTITY || !archetype_descriptor.is_valid() {
             return None;
         }
-        return match self.sorted_mappings[len]
+        return match self.sorted_mappings[len - 1]
             .binary_search_by_key(&archetype_descriptor.archetype_id(), |e| e.id)
         {
             Ok(found_index) => Some(
                 &mut self.archetypes
-                    [self.sorted_mappings[len][found_index].archetype_index as usize],
+                    [self.sorted_mappings[len - 1][found_index].archetype_index as usize],
             ),
             Err(_) => None,
         };
@@ -132,13 +133,13 @@ impl ArchetypeRegistry {
         if len > MAX_COMPONENTS_PER_ENTITY || !archetype_descriptor.is_valid() {
             return None;
         }
-        return match self.sorted_mappings[len]
+        return match self.sorted_mappings[len - 1]
             .binary_search_by_key(&archetype_descriptor.archetype_id(), |e| e.id)
         {
             Ok(found_index) => Some((
-                self.sorted_mappings[len][found_index].archetype_index,
+                self.sorted_mappings[len - 1][found_index].archetype_index,
                 &mut self.archetypes
-                    [self.sorted_mappings[len][found_index].archetype_index as usize],
+                    [self.sorted_mappings[len - 1][found_index].archetype_index as usize],
             )),
             Err(insertion_index) => {
                 if self.archetypes.len() >= MAX_ARCHETYPE_COUNT {
@@ -154,7 +155,7 @@ impl ArchetypeRegistry {
                     archetype_index: self.archetypes.len() as u16,
                 };
                 self.archetypes.push(archetype);
-                self.sorted_mappings[len].insert(insertion_index, key);
+                self.sorted_mappings[len - 1].insert(insertion_index, key);
                 Some((
                     self.archetypes.len() as u16 - 1,
                     self.archetypes.last_mut().unwrap(),
