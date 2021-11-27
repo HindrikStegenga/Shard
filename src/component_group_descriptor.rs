@@ -205,7 +205,7 @@ mod tests {
         let result = ComponentGroupDescriptor::compute_sorted_descriptors(&descriptors);
         assert_eq!(TestComponentA::DESCRIPTOR, result[0]);
         assert_eq!(TestComponentB::DESCRIPTOR, result[1]);
-        assert_eq!(TestComponentB::DESCRIPTOR, result[2]);
+        assert_eq!(TestComponentC::DESCRIPTOR, result[2]);
     }
 
     #[test]
