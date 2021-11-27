@@ -1,4 +1,6 @@
 use crate::archetype::{Archetype, EntityMetadata};
+use crate::archetype_registry::matching_iter::MatchingIter;
+use crate::archetype_registry::matching_iter_mut::MatchingIterMut;
 use crate::archetype_registry::ArchetypeRegistry;
 use crate::{component_group::ComponentGroup, entity_registry::EntityRegistry, Component, Entity};
 
@@ -227,10 +229,24 @@ impl Registry {
     ) -> Result<C1, C2> {
         todo!()
     }
+}
 
-    /// Iterates over all entities in the registry.
-    pub fn iter_all_entities<'a>(&'a self) -> impl Iterator<Item = Entity> + 'a {
+impl Registry {
+    /// Returns an iterator which iterates over all entities in the registry.
+    pub fn iter_entities<'a>(&'a self) -> impl Iterator<Item = Entity> + 'a {
         self.entities.iter()
+    }
+
+    /// Returns an iterator which iterates over all archetypes matching the specified predicate.
+    pub fn iter_components_matching<'a, G: ComponentGroup<'a>>(&'a self) -> MatchingIter<'a, G> {
+        self.archetypes.iter_components_matching::<'a, G>()
+    }
+
+    /// Returns an iterator which mutably iterates over all archetypes matching the specified predicate.
+    pub fn iter_components_matching_mut<'a, G: ComponentGroup<'a>>(
+        &'a mut self,
+    ) -> MatchingIterMut<'a, G> {
+        self.archetypes.iter_components_matching_mut::<'a, G>()
     }
 
     /// Returns a tuple of component slices if the exact archetype matching the component group exists.
