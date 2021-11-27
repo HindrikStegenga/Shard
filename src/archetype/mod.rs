@@ -4,17 +4,14 @@ use alloc::alloc::{alloc, Layout};
 use core::mem::{align_of, size_of};
 
 mod data_access;
-mod metadata;
 #[cfg(test)]
 mod tests;
-
-pub(crate) use metadata::*;
 
 #[derive(Debug)]
 pub(crate) struct Archetype {
     descriptor: ArchetypeDescriptor,
     pointers: [*mut u8; MAX_COMPONENTS_PER_ENTITY],
-    entity_metadata: *mut EntityMetadata,
+    entity_associations: *mut Entity,
     entity_count: u32,
     capacity: u32,
 }
@@ -41,7 +38,7 @@ impl Archetype {
         let mut archetype = Self {
             descriptor: archetype_descriptor.clone(),
             pointers: [core::ptr::null_mut(); MAX_COMPONENTS_PER_ENTITY],
-            entity_metadata: core::ptr::null_mut(),
+            entity_associations: core::ptr::null_mut(),
             entity_count: 0,
             capacity: 0,
         };
@@ -49,11 +46,11 @@ impl Archetype {
         if capacity > 0 && capacity <= MAX_ENTITIES_PER_ARCHETYPE {
             unsafe {
                 let layout = Layout::from_size_align_unchecked(
-                    size_of::<EntityMetadata>() * capacity as usize,
-                    align_of::<EntityMetadata>(),
+                    size_of::<Entity>() * capacity as usize,
+                    align_of::<Entity>(),
                 );
-                archetype.entity_metadata = alloc(layout) as *mut EntityMetadata;
-                assert_ne!(archetype.entity_metadata, core::ptr::null_mut());
+                archetype.entity_associations = alloc(layout) as *mut Entity;
+                assert_ne!(archetype.entity_associations, core::ptr::null_mut());
 
                 for (index, component) in archetype.descriptor.components().iter().enumerate() {
                     let layout = Layout::from_size_align_unchecked(

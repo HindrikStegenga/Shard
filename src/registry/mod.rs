@@ -1,6 +1,6 @@
-use crate::archetype::{Archetype, EntityMetadata};
-use crate::archetype_registry::matching_iter::MatchingIter;
-use crate::archetype_registry::matching_iter_mut::MatchingIterMut;
+use crate::archetype::Archetype;
+use crate::archetype_registry::matching_iter::{EntityMatchingIter, MatchingIter};
+use crate::archetype_registry::matching_iter_mut::{EntityMatchingIterMut, MatchingIterMut};
 use crate::archetype_registry::ArchetypeRegistry;
 use crate::{component_group::ComponentGroup, entity_registry::EntityRegistry, Component, Entity};
 
@@ -43,8 +43,8 @@ impl Registry {
             Some(v) => v,
             None => return Err(components),
         };
-        let metadata = EntityMetadata::new(entity_entry.entity());
-        let idx_in_archetype = unsafe { archetype.push_entity_unchecked(metadata, components) };
+        let idx_in_archetype =
+            unsafe { archetype.push_entity_unchecked(entity_entry.entity(), components) };
         entity_entry.set_index_in_archetype(idx_in_archetype);
         entity_entry.set_archetype_index(archetype_index);
         Ok(entity_entry.entity())
@@ -63,8 +63,7 @@ impl Registry {
             if archetype.swap_drop_unchecked(index_in_archetype) {
                 // A swap was needed, so we need to update the index_in_archetype of the entry that it was swapped with.
                 // We retrieve the entity handle using the metadata, which is now at the old entity's position.
-                let swapped_entity =
-                    archetype.entity_metadata()[index_in_archetype as usize].entity();
+                let swapped_entity = archetype.entities()[index_in_archetype as usize];
                 self.entities
                     .get_entity_entry_mut(swapped_entity)
                     .unwrap()
@@ -91,8 +90,7 @@ impl Registry {
                 (value, true) => {
                     // A swap was needed, so we need to update the index_in_archetype of the entry that it was swapped with.
                     // We retrieve the entity handle using the metadata, which is now at the old entity's position.
-                    let swapped_entity =
-                        archetype.entity_metadata()[index_in_archetype as usize].entity();
+                    let swapped_entity = archetype.entities()[index_in_archetype as usize];
                     self.entities
                         .get_entity_entry_mut(swapped_entity)
                         .unwrap()
@@ -175,8 +173,7 @@ impl Registry {
         if unsafe { source_archetype.swap_to_last_unchecked(entry.index_in_archetype()) } {
             // A swap was needed, so we need to update the index_in_archetype of the entry that it was swapped with.
             // We retrieve the entity handle using the metadata, which is now at the swapped with entity's position.
-            let swapped_entity =
-                source_archetype.entity_metadata()[entry.index_in_archetype() as usize].entity();
+            let swapped_entity = source_archetype.entities()[entry.index_in_archetype() as usize];
             self.entities
                 .get_entity_entry_mut(swapped_entity)
                 .unwrap()
@@ -202,9 +199,8 @@ impl Registry {
                 .write_single_component_unchecked(destination_entity_index_in_archetype, component);
 
             // Copy the metadata
-            destination_archetype.entity_metadata_mut()
-                [destination_entity_index_in_archetype as usize] =
-                source_archetype.entity_metadata()[new_source_entity_index_in_archetype as usize];
+            destination_archetype.entities_mut()[destination_entity_index_in_archetype as usize] =
+                source_archetype.entities()[new_source_entity_index_in_archetype as usize];
 
             // Make the source archetype forget the old entity.
             source_archetype.decrement_len_unchecked();
@@ -237,19 +233,38 @@ impl Registry {
         self.entities.iter()
     }
 
-    /// Returns an iterator which iterates over all archetypes matching the specified predicate.
+    /// Returns an iterator which iterates over all components in archetypes
+    /// matching the specified predicate.
     pub fn iter_components_matching<'a, G: ComponentGroup<'a>>(&'a self) -> MatchingIter<'a, G> {
-        self.archetypes.iter_components_matching::<'a, G>()
+        self.archetypes.iter_components_matching()
     }
 
-    /// Returns an iterator which mutably iterates over all archetypes matching the specified predicate.
+    /// Returns an iterator which mutably iterates over all components in archetypes
+    /// matching the specified predicate.
     pub fn iter_components_matching_mut<'a, G: ComponentGroup<'a>>(
         &'a mut self,
     ) -> MatchingIterMut<'a, G> {
-        self.archetypes.iter_components_matching_mut::<'a, G>()
+        self.archetypes.iter_components_matching_mut()
     }
 
-    /// Returns a tuple of component slices if the exact archetype matching the component group exists.
+    /// Returns an iterator which iterates over all entities and components in archetypes
+    /// matching the specified predicate.
+    pub fn iter_entity_components_matching<'a, G: ComponentGroup<'a>>(
+        &'a self,
+    ) -> EntityMatchingIter<'a, G> {
+        self.archetypes.iter_entity_components_matching()
+    }
+
+    /// Returns an iterator which mutably iterates over all entities and components in archetypes
+    /// matching the specified predicate.
+    pub fn iter_entity_components_matching_mut<'a, G: ComponentGroup<'a>>(
+        &'a mut self,
+    ) -> EntityMatchingIterMut<'a, G> {
+        self.archetypes.iter_entity_components_matching_mut()
+    }
+
+    /// Returns a tuple of component slices if the exact archetype
+    /// matching the predicate exists.
     pub fn iter_components_exact<'a, G: ComponentGroup<'a>>(&'a self) -> G::SliceRefTuple {
         match self.archetypes.find_archetype(G::DESCRIPTOR.archetype()) {
             Some(v) => unsafe { v.get_slices_unchecked_exact::<G>() },
@@ -257,7 +272,8 @@ impl Registry {
         }
     }
 
-    /// Returns a tuple of mutable component slices if the exact archetype matching the component group exists.
+    /// Returns a tuple of mutable component slices if the exact archetype
+    /// matching the predicate exists.
     pub fn iter_components_exact_mut<'a, G: ComponentGroup<'a>>(
         &'a mut self,
     ) -> G::SliceMutRefTuple {

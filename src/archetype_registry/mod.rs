@@ -15,8 +15,8 @@ use sorted_archetype_key::*;
 
 use crate::archetype::Archetype;
 use crate::archetype_descriptor::ArchetypeDescriptor;
-use crate::archetype_registry::matching_iter::MatchingIter;
-use crate::archetype_registry::matching_iter_mut::MatchingIterMut;
+use crate::archetype_registry::matching_iter::{EntityMatchingIter, MatchingIter};
+use crate::archetype_registry::matching_iter_mut::{EntityMatchingIterMut, MatchingIterMut};
 use crate::component_descriptor::ComponentDescriptor;
 use crate::component_group::ComponentGroup;
 use crate::constants::*;
@@ -188,6 +188,18 @@ impl ArchetypeRegistry {
         &'a mut self,
     ) -> MatchingIterMut<'a, G> {
         MatchingIterMut::new(&self.sorted_mappings, &mut self.archetypes)
+    }
+
+    pub(crate) fn iter_entity_components_matching<'a, G: ComponentGroup<'a>>(
+        &'a self,
+    ) -> EntityMatchingIter<'a, G> {
+        EntityMatchingIter::new(&self.sorted_mappings, &self.archetypes)
+    }
+
+    pub(crate) fn iter_entity_components_matching_mut<'a, G: ComponentGroup<'a>>(
+        &'a mut self,
+    ) -> EntityMatchingIterMut<'a, G> {
+        EntityMatchingIterMut::new(&self.sorted_mappings, &mut self.archetypes)
     }
 }
 

@@ -20,12 +20,19 @@ impl<'a> Iterator for EntityIter<'a> {
     type Item = Entity;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let (_i, entry) = self.entities[self.current..]
-            .iter()
-            .enumerate()
-            .find(|(_i, e)| e.is_valid())?;
-        self.current = _i + 1;
-        Some(unsafe { Entity::new_unchecked(_i as u32, entry.version()) })
+        while self.current < self.entities.len() {
+            self.current += 1;
+            let entry = &self.entities[self.current - 1];
+            if entry.is_valid() {
+                return unsafe {
+                    Some(Entity::new_unchecked(
+                        (self.current - 1) as u32,
+                        entry.version(),
+                    ))
+                };
+            }
+        }
+        None
     }
 }
 

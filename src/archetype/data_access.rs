@@ -1,6 +1,6 @@
 use super::Archetype;
-use crate::archetype::metadata::EntityMetadata;
 use crate::component_group::*;
+use crate::entity::Entity;
 use crate::{
     Component, DEFAULT_ARCHETYPE_ALLOCATION_SIZE, MAX_COMPONENTS_PER_ENTITY,
     MAX_ENTITIES_PER_ARCHETYPE,
@@ -117,6 +117,40 @@ impl Archetype {
         let pointers = self.get_fuzzy_pointers_unchecked::<G>();
         G::slice_unchecked_mut(&pointers, self.len() as usize)
     }
+
+    /// Returns the entity slice and the  slices for the components in [`G`], provided that archetype
+    /// itself contains a superset of G.
+    /// This function is slower than the exact version, use that if an exact type match is known.
+    /// # Safety:
+    /// - Only call this with subsets of the types stored in the archetype.
+    /// - [`G`] must have a valid archetype descriptor.
+    pub unsafe fn get_entity_fuzzy_slices_unchecked<'s, G: ComponentGroup<'s>>(
+        &'s self,
+    ) -> (&'s [Entity], G::SliceRefTuple) {
+        debug_assert!(G::DESCRIPTOR.is_valid());
+        let pointers = self.get_fuzzy_pointers_unchecked::<G>();
+        (
+            self.entities(),
+            G::slice_unchecked(&pointers, self.len() as usize),
+        )
+    }
+
+    /// Returns the entity slice and the  mutable slices for the components in [`G`], provided that
+    /// archetype itself contains a superset of G.
+    /// This function is slower than the exact version, use that if an exact type match is known.
+    /// # Safety:
+    /// - Only call this with subsets of the types stored in the archetype.
+    /// - [`G`] must have a valid archetype descriptor.
+    pub unsafe fn get_entity_fuzzy_slices_unchecked_mut<'s, G: ComponentGroup<'s>>(
+        &'s mut self,
+    ) -> (&'s [Entity], G::SliceMutRefTuple) {
+        debug_assert!(G::DESCRIPTOR.is_valid());
+        let pointers = self.get_fuzzy_pointers_unchecked::<G>();
+        (
+            self.entities(),
+            G::slice_unchecked_mut(&pointers, self.len() as usize),
+        )
+    }
 }
 
 impl Archetype {
@@ -135,14 +169,14 @@ impl Archetype {
         self.entity_count == self.capacity()
     }
 
-    /// Returns a reference to the internal slice storing entity metadata.
-    pub(crate) fn entity_metadata(&self) -> &[EntityMetadata] {
-        unsafe { &*slice_from_raw_parts(self.entity_metadata, self.len() as usize) }
+    /// Returns a reference to the internal slice storing entity associations.
+    pub(crate) fn entities(&self) -> &[Entity] {
+        unsafe { &*slice_from_raw_parts(self.entity_associations, self.len() as usize) }
     }
 
-    /// Returns a mutable reference to the internal slice storing entity metadata.
-    pub(crate) fn entity_metadata_mut(&mut self) -> &mut [EntityMetadata] {
-        unsafe { &mut *slice_from_raw_parts_mut(self.entity_metadata, self.len() as usize) }
+    /// Returns a mutable reference to the internal slice storing entity associations.
+    pub(crate) fn entities_mut(&mut self) -> &mut [Entity] {
+        unsafe { &mut *slice_from_raw_parts_mut(self.entity_associations, self.len() as usize) }
     }
 
     /// Pushes a given entity/component-tuple into the archetype's backing memory.
@@ -154,7 +188,7 @@ impl Archetype {
     /// - If resizing fails, this function will panic.
     pub(crate) unsafe fn push_entity_unchecked<'a, G: ComponentGroup<'a>>(
         &mut self,
-        metadata: EntityMetadata,
+        entity_handle: Entity,
         entity: G,
     ) -> u32 {
         debug_assert!(G::DESCRIPTOR.is_valid());
@@ -164,7 +198,7 @@ impl Archetype {
         );
         self.resize_if_necessary();
         let entity_index = self.len();
-        self.write_entity_unchecked(entity_index, metadata, entity);
+        self.write_entity_unchecked(entity_index, entity_handle, entity);
         self.entity_count += 1;
         entity_index
     }
@@ -218,7 +252,7 @@ impl Archetype {
     pub(crate) unsafe fn write_entity_unchecked<'a, G: ComponentGroup<'a>>(
         &mut self,
         index: u32,
-        metadata: EntityMetadata,
+        entity_handle: Entity,
         mut entity: G,
     ) {
         debug_assert!(index < self.capacity());
@@ -245,7 +279,7 @@ impl Archetype {
                 component.size as usize,
             );
         }
-        *self.entity_metadata_mut().get_unchecked_mut(index as usize) = metadata;
+        *self.entities_mut().get_unchecked_mut(index as usize) = entity_handle;
         core::mem::forget(entity);
     }
 
@@ -325,8 +359,7 @@ impl Archetype {
             let ptr_second = self.pointers[idx].offset(second as isize * descriptor.size as isize);
             core::ptr::swap_nonoverlapping(ptr_first, ptr_second, descriptor.size as usize);
         }
-        self.entity_metadata_mut()
-            .swap(first as usize, second as usize);
+        self.entities_mut().swap(first as usize, second as usize);
     }
 
     /// Calls drop on the entity at [`index`].
@@ -380,15 +413,15 @@ impl Archetype {
         let new_capacity = new_capacity as usize;
 
         let layout = Layout::from_size_align_unchecked(
-            size_of::<EntityMetadata>() * old_capacity as usize,
-            align_of::<EntityMetadata>(),
+            size_of::<Entity>() * old_capacity as usize,
+            align_of::<Entity>(),
         );
-        self.entity_metadata = realloc(
-            self.entity_metadata as *mut u8,
+        self.entity_associations = realloc(
+            self.entity_associations as *mut u8,
             layout,
-            size_of::<EntityMetadata>() * new_capacity,
-        ) as *mut EntityMetadata;
-        assert_ne!(self.entity_metadata, core::ptr::null_mut());
+            size_of::<Entity>() * new_capacity,
+        ) as *mut Entity;
+        assert_ne!(self.entity_associations, core::ptr::null_mut());
         for (index, pointer) in self.pointers[0..self.descriptor.len() as usize]
             .iter_mut()
             .enumerate()
@@ -428,11 +461,11 @@ impl Archetype {
             *pointer = core::ptr::null_mut();
         }
         let layout = Layout::from_size_align_unchecked(
-            size_of::<EntityMetadata>() * self.capacity() as usize,
-            align_of::<EntityMetadata>(),
+            size_of::<Entity>() * self.capacity() as usize,
+            align_of::<Entity>(),
         );
-        dealloc(self.entity_metadata as *mut u8, layout);
-        self.entity_metadata = core::ptr::null_mut();
+        dealloc(self.entity_associations as *mut u8, layout);
+        self.entity_associations = core::ptr::null_mut();
         self.capacity = 0;
     }
 

@@ -1,4 +1,3 @@
-use crate::archetype::EntityMetadata;
 use crate::archetype_registry::ArchetypeRegistry;
 use crate::component_group::ComponentGroup;
 use crate::entity::*;
@@ -11,7 +10,7 @@ fn test_archetype_registry() {
     let (_, archetype) = registry.find_or_create_archetype(&descriptor).unwrap();
     (0..1048576).for_each(|e| unsafe {
         let _ = archetype.push_entity_unchecked(
-            EntityMetadata::new(Entity::new_unchecked(e as u32, 0)),
+            Entity::new_unchecked(e as u32, 0),
             (A { _data: e }, B { _data: 1048576 - e }),
         );
     });

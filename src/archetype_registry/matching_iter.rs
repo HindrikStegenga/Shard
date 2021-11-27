@@ -1,6 +1,7 @@
 use super::*;
 use crate::archetype_registry::archetype_iter::ArchetypeIter;
 use crate::component_group::ComponentGroup;
+use crate::Entity;
 use core::iter::FusedIterator;
 
 pub struct MatchingIter<'a, G: ComponentGroup<'a>> {
@@ -45,11 +46,11 @@ impl<'a, G: ComponentGroup<'a>> EntityMatchingIter<'a, G> {
 }
 
 impl<'a, G: ComponentGroup<'a>> Iterator for EntityMatchingIter<'a, G> {
-    type Item = G::SliceRefTuple;
+    type Item = (&'a [Entity], G::SliceRefTuple);
 
     fn next(&mut self) -> Option<Self::Item> {
         let archetype = self.inner_iterator.next()?;
-        unsafe { Some(archetype.get_fuzzy_slices_unchecked::<G>()) }
+        unsafe { Some(archetype.get_entity_fuzzy_slices_unchecked::<G>()) }
     }
 }
 

@@ -1,4 +1,3 @@
-use crate::archetype::metadata::EntityMetadata;
 use crate::archetype::Archetype;
 use crate::archetype_descriptor::ArchetypeDescriptor;
 use crate::component_group::ComponentGroup;
@@ -21,12 +20,12 @@ fn test_archetype_slices() {
         let descriptor = <(A, B, C) as ComponentGroup<'_>>::DESCRIPTOR.archetype();
 
         let mut archetype = Archetype::new(descriptor);
-        let meta = EntityMetadata::default();
+        let meta = Entity::INVALID;
 
         let _idx =
             archetype.push_entity_unchecked(meta, (A::default(), B::default(), C::default()));
         assert_eq!(archetype.entity_count, 1);
-        assert_eq!(meta, archetype.entity_metadata().as_ref()[0]);
+        assert_eq!(meta, archetype.entities().as_ref()[0]);
 
         let slices: (&[A], &[B], &[C]) = archetype.get_slices_unchecked_exact::<(A, B, C)>();
         assert_eq!(slices.0.len(), 1);
@@ -61,7 +60,7 @@ fn test_archetype_get_components() {
         let descriptor = <(A, B, C) as ComponentGroup<'_>>::DESCRIPTOR.archetype();
 
         let mut archetype = Archetype::new(descriptor);
-        let meta = EntityMetadata::default();
+        let meta = Entity::INVALID;
 
         let idx = archetype.push_entity_unchecked(meta, (A::default(), B::default(), C::default()));
         assert_eq!(*archetype.get_component_unchecked::<A>(idx), A::default());
@@ -78,8 +77,8 @@ fn test_archetype_swap_entities() {
         let descriptor = <(A, B) as ComponentGroup<'_>>::DESCRIPTOR.archetype();
 
         let mut archetype = Archetype::new(descriptor);
-        let meta1 = EntityMetadata::new(Entity::from_raw(1));
-        let meta2 = EntityMetadata::new(Entity::from_raw(2));
+        let meta1 = Entity::from_raw(1);
+        let meta2 = Entity::from_raw(2);
 
         let idx1 = archetype.push_entity_unchecked(meta1, (A { _data: 1 }, B { _data: 3 }));
         let idx2 = archetype.push_entity_unchecked(meta2, (A { _data: 2 }, B { _data: 4 }));
@@ -116,8 +115,8 @@ fn test_archetype_swap_entities() {
             B { _data: 4 }
         );
 
-        assert_eq!(archetype.entity_metadata()[idx1 as usize], meta1);
-        assert_eq!(archetype.entity_metadata()[idx2 as usize], meta2);
+        assert_eq!(archetype.entities()[idx1 as usize], meta1);
+        assert_eq!(archetype.entities()[idx2 as usize], meta2);
 
         archetype.swap_entities(idx1, idx2);
         assert_eq!(
@@ -137,8 +136,8 @@ fn test_archetype_swap_entities() {
             B { _data: 4 }
         );
 
-        assert_eq!(archetype.entity_metadata()[idx2 as usize], meta1);
-        assert_eq!(archetype.entity_metadata()[idx1 as usize], meta2);
+        assert_eq!(archetype.entities()[idx2 as usize], meta1);
+        assert_eq!(archetype.entities()[idx1 as usize], meta2);
 
         archetype.swap_entities(idx1, idx2);
         assert_eq!(
@@ -158,8 +157,8 @@ fn test_archetype_swap_entities() {
             B { _data: 4 }
         );
 
-        assert_eq!(archetype.entity_metadata()[idx1 as usize], meta1);
-        assert_eq!(archetype.entity_metadata()[idx2 as usize], meta2);
+        assert_eq!(archetype.entities()[idx1 as usize], meta1);
+        assert_eq!(archetype.entities()[idx2 as usize], meta2);
     }
 }
 
@@ -169,7 +168,7 @@ fn test_archetype_read_components() {
         let descriptor = <(A, B) as ComponentGroup<'_>>::DESCRIPTOR.archetype();
 
         let mut archetype = Archetype::new(descriptor);
-        let meta = EntityMetadata::default();
+        let meta = Entity::INVALID;
 
         let idx = archetype.push_entity_unchecked(meta, (A::default(), B::default()));
         assert_eq!(
@@ -184,7 +183,7 @@ fn test_archetype_read_components() {
         let descriptor = <(A, B, C) as ComponentGroup<'_>>::DESCRIPTOR.archetype();
 
         let mut archetype = Archetype::new(descriptor);
-        let meta = EntityMetadata::default();
+        let meta = Entity::INVALID;
         let idx = archetype.push_entity_unchecked(meta, (A::default(), B::default(), C::default()));
         assert_eq!(
             archetype.read_components_exact_unchecked::<(A, B, C)>(idx),

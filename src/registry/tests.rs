@@ -2,6 +2,7 @@
 use crate::test_components::*;
 #[cfg(test)]
 use crate::*;
+use alloc::vec::Vec;
 
 #[test]
 fn test_registry() {
@@ -51,4 +52,28 @@ fn test_registry() {
     assert!(registry.has_component::<C>(entity));
 
     registry.destroy_entity(entity);
+
+    const COUNT: usize = 1024;
+    let mut registry = Registry::default();
+    let entities: Vec<_> = (0..COUNT)
+        .map(|e| {
+            registry
+                .create_entity((A { _data: e }, B { _data: COUNT - e }))
+                .unwrap()
+        })
+        .collect();
+
+    registry
+        .iter_entities()
+        .for_each(|e| assert!(entities.contains(&e)));
+
+    for (entities, (a, b)) in registry.iter_entity_components_matching::<(A, B)>() {
+        entities.iter().for_each(|e| assert!(entities.contains(&e)));
+        a.iter()
+            .enumerate()
+            .for_each(|(i, a)| assert_eq!(a._data, i));
+        b.iter()
+            .enumerate()
+            .for_each(|(i, b)| assert_eq!(b._data, COUNT - i));
+    }
 }
