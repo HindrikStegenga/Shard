@@ -1,4 +1,5 @@
 mod iter;
+mod iter_mut;
 mod sorted_archetype_key;
 
 #[cfg(test)]
@@ -11,6 +12,7 @@ use sorted_archetype_key::*;
 use crate::archetype::Archetype;
 use crate::archetype_descriptor::ArchetypeDescriptor;
 use crate::archetype_registry::iter::ArchetypeIter;
+use crate::archetype_registry::iter_mut::ArchetypeIterMut;
 use crate::component_descriptor::ComponentDescriptor;
 use crate::component_group::ComponentGroup;
 use crate::constants::*;
@@ -176,6 +178,12 @@ impl ArchetypeRegistry {
         &'a self,
     ) -> ArchetypeIter<'a, G> {
         ArchetypeIter::new(&self.sorted_mappings, &self.archetypes)
+    }
+
+    pub(crate) fn iter_components_matching_mut<'a, G: ComponentGroup<'a>>(
+        &'a mut self,
+    ) -> ArchetypeIterMut<'a, G> {
+        ArchetypeIterMut::new(&self.sorted_mappings, &mut self.archetypes)
     }
 }
 

@@ -2,18 +2,18 @@ use super::*;
 use crate::component_group::ComponentGroup;
 use core::marker::PhantomData;
 
-pub struct ArchetypeIter<'a, G: ComponentGroup<'a>> {
+pub struct ArchetypeIterMut<'a, G: ComponentGroup<'a>> {
     sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
-    archetypes: &'a [Archetype],
+    archetypes: &'a mut [Archetype],
     current_level: u8,
     current_index_in_level: usize,
     _phantom: PhantomData<fn(G)>,
 }
 
-impl<'a, G: ComponentGroup<'a>> ArchetypeIter<'a, G> {
+impl<'a, G: ComponentGroup<'a>> ArchetypeIterMut<'a, G> {
     pub(super) fn new(
         sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
-        archetypes: &'a [Archetype],
+        archetypes: &'a mut [Archetype],
     ) -> Self {
         Self {
             sorted_mappings,
@@ -25,8 +25,8 @@ impl<'a, G: ComponentGroup<'a>> ArchetypeIter<'a, G> {
     }
 }
 
-impl<'a, G: ComponentGroup<'a>> Iterator for ArchetypeIter<'a, G> {
-    type Item = G::SliceRefTuple;
+impl<'a, G: ComponentGroup<'a>> Iterator for ArchetypeIterMut<'a, G> {
+    type Item = G::SliceMutRefTuple;
 
     fn next(&mut self) -> Option<Self::Item> {
         if !G::DESCRIPTOR.is_valid() {
@@ -37,15 +37,19 @@ impl<'a, G: ComponentGroup<'a>> Iterator for ArchetypeIter<'a, G> {
             while (self.current_index_in_level as usize) < level.len() {
                 let arch_index = level[self.current_index_in_level as usize].archetype_index;
                 self.current_index_in_level += 1;
-                let archetype = &self.archetypes[arch_index as usize];
-                if archetype.descriptor().contains(G::DESCRIPTOR.archetype()) {
-                    return Some(unsafe { archetype.get_fuzzy_slices_unchecked::<G>() });
+                unsafe {
+                    // Safety: The problem is that the compiler cannot guarantee we don't mutably borrow
+                    // the same element twice. We don't, so use unsafe to implement this.
+                    let archetype: &mut Archetype =
+                        &mut *self.archetypes.as_mut_ptr().offset(arch_index as isize);
+                    if archetype.descriptor().contains(G::DESCRIPTOR.archetype()) {
+                        return Some(archetype.get_fuzzy_slices_unchecked_mut::<G>());
+                    }
                 }
             }
             self.current_index_in_level = 0;
             self.current_level += 1;
         }
-
         None
     }
 }
