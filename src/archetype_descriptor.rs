@@ -8,7 +8,7 @@ use crate::{constants::*, ArchetypeId, Component, ComponentTypeId};
 /// Use the [`ArchetypeDescriptor::is_valid`] function to check for validity.
 /// Any use of an invalid archetype descriptor is considered UB.
 #[derive(Debug, Clone)]
-pub struct ArchetypeDescriptor {
+pub(crate) struct ArchetypeDescriptor {
     archetype_id: ArchetypeId,
     components: [ComponentDescriptor; MAX_COMPONENTS_PER_ENTITY],
     len: u8,
@@ -105,17 +105,17 @@ impl ArchetypeDescriptor {
         &self,
         component_descriptor: &ComponentDescriptor,
     ) -> Option<ArchetypeDescriptor> {
-        if self.len as usize == MAX_COMPONENTS_PER_ENTITY {
+        if self.len() as usize == MAX_COMPONENTS_PER_ENTITY {
             return None; // Archetype is full.
         }
-        match self.components[0..self.len as usize]
+        match self.components[0..self.len() as usize]
             .binary_search_by_key(&component_descriptor.component_type_id, |e| {
                 e.component_type_id
             }) {
             Ok(_) => None, // Current archetype already contains given component.
             Err(insertion_index) => {
                 let mut v = self.clone();
-                for i in insertion_index..self.len as usize + 1 {
+                for i in insertion_index..self.len() as usize + 1 {
                     v.components[i + 1] = self.components[i].clone();
                 }
                 v.components[insertion_index] = component_descriptor.clone();
@@ -125,6 +125,31 @@ impl ArchetypeDescriptor {
                     ArchetypeDescriptor::compute_archetype_id(&v.components[0..v.len() as usize]);
                 Some(v)
             }
+        }
+    }
+
+    pub(crate) fn remove_component(
+        &self,
+        component: ComponentTypeId,
+    ) -> Option<ArchetypeDescriptor> {
+        if self.len() as usize == 1 {
+            return None; // Archetype cannot contain zero components.
+        }
+        match self.components[0..self.len() as usize]
+            .binary_search_by_key(&component, |e| e.component_type_id)
+        {
+            Ok(found_index) => {
+                let mut v = self.clone();
+                for i in found_index..self.len() as usize {
+                    v.components[i] = self.components[i + 1].clone();
+                }
+
+                v.len -= 1;
+                v.archetype_id =
+                    ArchetypeDescriptor::compute_archetype_id(&v.components[0..v.len() as usize]);
+                Some(v)
+            }
+            Err(_) => None,
         }
     }
 
@@ -166,27 +191,47 @@ impl ArchetypeDescriptor {
 
 #[cfg(test)]
 mod tests {
+    use crate::archetype_descriptor::ArchetypeDescriptor;
     use crate::component_group::ComponentGroup;
     use crate::test_components::*;
+    use crate::Component;
+
+    #[test]
+    fn test_archetype_descriptor_add_remove() {
+        let descriptor: &ArchetypeDescriptor = <(A, B) as ComponentGroup>::DESCRIPTOR.archetype();
+        assert_eq!(descriptor.has_component::<A>(), true);
+        assert_eq!(descriptor.has_component::<B>(), true);
+        let descriptor = descriptor
+            .add_component(&<C as Component>::DESCRIPTOR)
+            .unwrap();
+        assert_eq!(descriptor.has_component::<C>(), true);
+        assert_eq!(descriptor.has_component::<A>(), true);
+        assert_eq!(descriptor.has_component::<B>(), true);
+        let descriptor = descriptor.remove_component(B::ID).unwrap();
+        assert_eq!(descriptor.has_component::<B>(), false);
+        assert_eq!(descriptor.has_component::<A>(), true);
+        assert_eq!(descriptor.has_component::<C>(), true);
+        assert_eq!(descriptor.len(), 2);
+    }
 
     #[test]
     fn test_archetype_descriptor_contains() {
         assert_eq!(
             <(A, B) as ComponentGroup>::DESCRIPTOR
                 .archetype()
-                .contains_subset(A::DESCRIPTOR.archetype()),
+                .contains_subset(<A as ComponentGroup>::DESCRIPTOR.archetype()),
             true
         );
         assert_eq!(
             <(A, B) as ComponentGroup>::DESCRIPTOR
                 .archetype()
-                .contains_subset(B::DESCRIPTOR.archetype()),
+                .contains_subset(<B as ComponentGroup>::DESCRIPTOR.archetype()),
             true
         );
         assert_eq!(
             <(A, B) as ComponentGroup>::DESCRIPTOR
                 .archetype()
-                .contains_subset(C::DESCRIPTOR.archetype()),
+                .contains_subset(<C as ComponentGroup>::DESCRIPTOR.archetype()),
             false
         );
     }

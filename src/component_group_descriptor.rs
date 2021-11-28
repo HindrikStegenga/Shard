@@ -17,7 +17,7 @@ pub struct ComponentGroupDescriptor {
 }
 
 impl ComponentGroupDescriptor {
-    const INVALID: Self = Self {
+    pub(crate) const INVALID: Self = Self {
         archetype: ArchetypeDescriptor::INVALID,
         sorted_to_unsorted: [0; MAX_COMPONENTS_PER_ENTITY],
         unsorted_to_sorted: [0; MAX_COMPONENTS_PER_ENTITY],
@@ -27,25 +27,25 @@ impl ComponentGroupDescriptor {
         self.archetype.is_valid()
     }
 
-    pub const fn archetype(&self) -> &ArchetypeDescriptor {
+    pub(crate) const fn archetype(&self) -> &ArchetypeDescriptor {
         &self.archetype
     }
 
-    pub const fn as_sorted(&self, index: u8) -> &ComponentDescriptor {
+    pub(crate) const fn as_sorted(&self, index: u8) -> &ComponentDescriptor {
         unsafe { &self.archetype.components_unchecked()[index as usize] }
     }
 
-    pub const fn as_unsorted(&self, index: u8) -> &ComponentDescriptor {
+    pub(crate) const fn as_unsorted(&self, index: u8) -> &ComponentDescriptor {
         unsafe {
             &self.archetype.components_unchecked()[self.sorted_to_unsorted[index as usize] as usize]
         }
     }
 
-    pub const fn sorted_to_unsorted(&self, index: u8) -> u8 {
+    pub(crate) const fn sorted_to_unsorted(&self, index: u8) -> u8 {
         self.sorted_to_unsorted[index as usize]
     }
 
-    pub const fn unsorted_to_sorted(&self, index: u8) -> u8 {
+    pub(crate) const fn unsorted_to_sorted(&self, index: u8) -> u8 {
         self.unsorted_to_sorted[index as usize]
     }
 

@@ -50,8 +50,11 @@ fn registry_test_has_component() {
     assert_eq!(registry.has_component::<A>(entity), true);
     assert_eq!(registry.has_component::<B>(entity), true);
     assert_eq!(registry.has_component::<C>(entity), false);
-    let invalid_handle = Entity::INVALID;
-    assert_eq!(registry.has_component::<A>(invalid_handle), false);
+    assert_eq!(registry.has_component::<A>(Entity::invalid()), false);
+
+    assert_eq!(registry.has_components::<(A, B)>(entity), true);
+    assert_eq!(registry.has_components::<(A, C)>(entity), false);
+    assert_eq!(registry.has_components::<(A, B)>(Entity::invalid()), false);
 }
 
 #[test]
@@ -100,6 +103,11 @@ fn test_registry() {
     assert!(registry.has_component::<B>(entity));
     assert!(registry.has_component::<A>(entity));
     assert!(registry.has_component::<C>(entity));
+
+    assert!(registry.remove_component::<A>(entity).is_ok());
+
+    assert!(registry.has_components::<(C, B)>(entity));
+    assert_eq!(registry.has_component::<A>(entity), false);
 
     registry.destroy_entity(entity);
 

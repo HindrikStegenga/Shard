@@ -131,6 +131,41 @@ impl ArchetypeRegistry {
         }
     }
 
+    /// Returns mutable reference to source archetype and finds or creates a new archetype by removing
+    /// the given component type as defined by component descriptor.
+    pub(crate) fn find_or_create_archetype_removing_component(
+        &mut self,
+        source_archetype_index: u16,
+        component_descriptor: &ComponentDescriptor,
+    ) -> Option<(&mut Archetype, u16, &mut Archetype)> {
+        // Range check
+        if source_archetype_index as usize > self.archetypes.len() {
+            return None;
+        }
+
+        unsafe {
+            // Safety: this pointer always is into self, and since we are removing a component from
+            // the archetype descriptor, this means that the destination_archetype is always a different
+            // one than the source archetype. As such, we can safely do this rather than needing to go
+            // through split_at_mut() and remapping indices.
+            let source_archetype: *mut Archetype = self
+                .archetypes
+                .get_unchecked_mut(source_archetype_index as usize);
+
+            let new_archetype_descriptor = (*source_archetype)
+                .descriptor()
+                .remove_component(component_descriptor.component_type_id())?;
+            let (destination_archetype_index, destination_archetype) =
+                self.find_or_create_archetype(&new_archetype_descriptor)?;
+
+            Some((
+                &mut *source_archetype,
+                destination_archetype_index,
+                destination_archetype,
+            ))
+        }
+    }
+
     pub(crate) fn find_or_create_archetype(
         &mut self,
         archetype_descriptor: &ArchetypeDescriptor,
