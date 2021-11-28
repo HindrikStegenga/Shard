@@ -5,6 +5,56 @@ use crate::*;
 use alloc::vec::Vec;
 
 #[test]
+fn registry_test_get_component() {
+    let mut registry = Registry::default();
+    let entity = registry
+        .create_entity((A::default(), B::default()))
+        .unwrap();
+    assert_eq!(registry.get_component(entity), Some(&A::default()));
+    assert_eq!(registry.get_component_mut(entity), Some(&mut B::default()));
+    assert_eq!(registry.get_component::<C>(entity), None);
+    assert_eq!(registry.get_component_mut::<A>(Entity::invalid()), None);
+    assert_eq!(
+        registry.get_components::<(A, B)>(entity),
+        Some((&A::default(), &B::default()))
+    );
+    assert_eq!(
+        registry.get_components::<(B, A)>(entity),
+        Some((&B::default(), &A::default()))
+    );
+    assert_eq!(registry.get_components::<(A, B)>(Entity::invalid()), None);
+    assert_eq!(
+        registry.get_components_mut::<(A, B)>(entity),
+        Some((&mut A::default(), &mut B::default()))
+    );
+    assert_eq!(
+        registry.get_components_mut::<(B, A)>(entity),
+        Some((&mut B::default(), &mut A::default()))
+    );
+    assert_eq!(
+        registry.get_components_mut::<(A, B)>(Entity::invalid()),
+        None
+    );
+    assert_eq!(
+        registry.get_component::<A>(entity),
+        registry.get_components::<A>(entity)
+    );
+}
+
+#[test]
+fn registry_test_has_component() {
+    let mut registry: Registry = Default::default();
+    let entity = registry
+        .create_entity((A::default(), B::default()))
+        .unwrap();
+    assert_eq!(registry.has_component::<A>(entity), true);
+    assert_eq!(registry.has_component::<B>(entity), true);
+    assert_eq!(registry.has_component::<C>(entity), false);
+    let invalid_handle = Entity::INVALID;
+    assert_eq!(registry.has_component::<A>(invalid_handle), false);
+}
+
+#[test]
 fn test_registry() {
     let mut registry = Registry::default();
     let entity = registry.create_entity((A::default(), B::default()));
@@ -76,4 +126,17 @@ fn test_registry() {
             .enumerate()
             .for_each(|(i, b)| assert_eq!(b._data, COUNT - i));
     }
+
+    let _entities2: Vec<_> = (0..COUNT)
+        .map(|e| {
+            registry
+                .create_entity((A { _data: e }, B { _data: COUNT - e }, C { _data: e }))
+                .unwrap()
+        })
+        .collect();
+    let mut counter = 0;
+    for _ in registry.iter_components_matching::<(A, B)>() {
+        counter += 1;
+    }
+    assert_eq!(counter, 2);
 }

@@ -47,7 +47,10 @@ impl<'a, G: ComponentGroup<'a>> Iterator for ArchetypeIterMut<'a, G> {
                     // the same element twice. We don't, so use unsafe to implement this.
                     let archetype: &mut Archetype =
                         &mut *self.archetypes.as_mut_ptr().offset(arch_index as isize);
-                    if archetype.descriptor().contains(G::DESCRIPTOR.archetype()) {
+                    if archetype
+                        .descriptor()
+                        .contains_subset(G::DESCRIPTOR.archetype())
+                    {
                         return Some(archetype);
                     }
                 }

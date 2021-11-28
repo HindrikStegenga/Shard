@@ -14,7 +14,7 @@ impl Default for Entity {
 }
 
 impl Entity {
-    pub const INVALID: Entity =
+    pub(crate) const INVALID: Entity =
         unsafe { Entity::new_unchecked(MAX_ENTITY_HANDLE_VALUE, MAX_ENTITY_VERSION_VALUE) };
 
     /// Constructs a new Entity from a raw u32.

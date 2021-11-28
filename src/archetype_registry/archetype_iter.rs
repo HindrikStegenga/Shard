@@ -44,7 +44,10 @@ impl<'a, G: ComponentGroup<'a>> Iterator for ArchetypeIter<'a, G> {
                         .archetype_index;
                     self.current_index_in_level += 1;
                     let archetype = &self.archetypes.get_unchecked(arch_index as usize);
-                    if archetype.descriptor().contains(G::DESCRIPTOR.archetype()) {
+                    if archetype
+                        .descriptor()
+                        .contains_subset(G::DESCRIPTOR.archetype())
+                    {
                         return Some(archetype);
                     }
                 }

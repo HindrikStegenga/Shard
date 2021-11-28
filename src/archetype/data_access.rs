@@ -43,6 +43,32 @@ impl Archetype {
         }
     }
 
+    /// Returns a reference to a specific component.
+    /// # Safety:
+    /// - Component group type [`G`] must be a subset of the types in the archetype
+    /// - panics otherwise.
+    pub(crate) unsafe fn get_fuzzy_components_unchecked<'a, G: ComponentGroup<'a>>(
+        &'a self,
+        index: u32,
+    ) -> G::RefTuple {
+        debug_assert!(G::DESCRIPTOR.is_valid());
+        let pointers = self.get_fuzzy_pointers_unchecked::<G>(index);
+        G::pointers_as_ref_tuple(&pointers)
+    }
+
+    /// Returns a reference to a specific component.
+    /// # Safety:
+    /// - Component group type [`G`] must be a subset of the types in the archetype
+    /// - panics otherwise.
+    pub(crate) unsafe fn get_fuzzy_components_unchecked_mut<'a, G: ComponentGroup<'a>>(
+        &'a mut self,
+        index: u32,
+    ) -> G::MutRefTuple {
+        debug_assert!(G::DESCRIPTOR.is_valid());
+        let pointers = self.get_fuzzy_pointers_unchecked::<G>(index);
+        G::pointers_as_mut_ref_tuple(&pointers)
+    }
+
     /// Reads a specific component from the archetype at the given index.
     /// # Safety:
     /// - Component type [`C`] must be present in the archetype
@@ -101,7 +127,7 @@ impl Archetype {
         &'s self,
     ) -> G::SliceRefTuple {
         debug_assert!(G::DESCRIPTOR.is_valid());
-        let pointers = self.get_fuzzy_pointers_unchecked::<G>();
+        let pointers = self.get_fuzzy_pointers_unchecked::<G>(0);
         G::slice_unchecked(&pointers, self.len() as usize)
     }
 
@@ -114,7 +140,7 @@ impl Archetype {
         &'s mut self,
     ) -> G::SliceMutRefTuple {
         debug_assert!(G::DESCRIPTOR.is_valid());
-        let pointers = self.get_fuzzy_pointers_unchecked::<G>();
+        let pointers = self.get_fuzzy_pointers_unchecked::<G>(0);
         G::slice_unchecked_mut(&pointers, self.len() as usize)
     }
 
@@ -128,7 +154,7 @@ impl Archetype {
         &'s self,
     ) -> (&'s [Entity], G::SliceRefTuple) {
         debug_assert!(G::DESCRIPTOR.is_valid());
-        let pointers = self.get_fuzzy_pointers_unchecked::<G>();
+        let pointers = self.get_fuzzy_pointers_unchecked::<G>(0);
         (
             self.entities(),
             G::slice_unchecked(&pointers, self.len() as usize),
@@ -145,7 +171,7 @@ impl Archetype {
         &'s mut self,
     ) -> (&'s [Entity], G::SliceMutRefTuple) {
         debug_assert!(G::DESCRIPTOR.is_valid());
-        let pointers = self.get_fuzzy_pointers_unchecked::<G>();
+        let pointers = self.get_fuzzy_pointers_unchecked::<G>(0);
         (
             self.entities(),
             G::slice_unchecked_mut(&pointers, self.len() as usize),
@@ -525,22 +551,27 @@ impl Archetype {
     /// Returns the pointers for the components in [`G`], provided that archetype itself contains a superset of G.
     /// This function is slower than the exact version, use that if an exact type match is known.
     /// # Safety:
+    /// - offset must be smaller than self.capacity.
     /// - Only call this with subsets of the types stored in the shard.
     unsafe fn get_fuzzy_pointers_unchecked<'a, G: ComponentGroup<'a>>(
         &'a self,
+        offset: u32,
     ) -> [*mut u8; MAX_COMPONENTS_PER_ENTITY] {
         let mut pointers = [core::ptr::null_mut(); MAX_COMPONENTS_PER_ENTITY];
         for (index, descriptor) in G::DESCRIPTOR.archetype().components().iter().enumerate() {
             'inner_loop: for check_index in index..self.descriptor.len() as usize {
                 if self
                     .descriptor
-                    .components()
+                    .components_unchecked()
                     .get_unchecked(check_index)
                     .component_type_id
                     .into_u16()
                     == descriptor.component_type_id.into_u16()
                 {
-                    *pointers.get_unchecked_mut(index) = *self.pointers.get_unchecked(check_index);
+                    *pointers.get_unchecked_mut(index) = self
+                        .pointers
+                        .get_unchecked(check_index)
+                        .offset(descriptor.size() as isize * offset as isize);
                     break 'inner_loop;
                 }
             }

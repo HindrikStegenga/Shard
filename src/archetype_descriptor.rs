@@ -69,7 +69,7 @@ impl ArchetypeDescriptor {
     }
 
     /// Returns whether the descriptor provided is contained in self. (i.e. subset inclusion)
-    pub(crate) const fn contains(&self, descriptor: &ArchetypeDescriptor) -> bool {
+    pub(crate) const fn contains_subset(&self, descriptor: &ArchetypeDescriptor) -> bool {
         if descriptor.len() > self.len() {
             return false;
         }
@@ -174,19 +174,19 @@ mod tests {
         assert_eq!(
             <(A, B) as ComponentGroup>::DESCRIPTOR
                 .archetype()
-                .contains(A::DESCRIPTOR.archetype()),
+                .contains_subset(A::DESCRIPTOR.archetype()),
             true
         );
         assert_eq!(
             <(A, B) as ComponentGroup>::DESCRIPTOR
                 .archetype()
-                .contains(B::DESCRIPTOR.archetype()),
+                .contains_subset(B::DESCRIPTOR.archetype()),
             true
         );
         assert_eq!(
             <(A, B) as ComponentGroup>::DESCRIPTOR
                 .archetype()
-                .contains(C::DESCRIPTOR.archetype()),
+                .contains_subset(C::DESCRIPTOR.archetype()),
             false
         );
     }
