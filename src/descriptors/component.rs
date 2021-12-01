@@ -1,7 +1,8 @@
-use crate::component_descriptor::*;
+use crate::descriptors::component_descriptor::*;
 use crate::{
-    component_type_id::ComponentTypeId, define_component_descriptor, fnv1a::fnv1a_hash_str_16_xor,
+    define_component_descriptor, fnv1a::fnv1a_hash_str_16_xor,
 };
+use crate::descriptors::component_type_id::ComponentTypeId;
 
 /// Implement this trait to use a type as a component in the ECS.
 /// Do not override the default implementations for [`Self::ID`] or [`Self::DESCRIPTOR`].

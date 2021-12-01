@@ -1,6 +1,6 @@
 use crate::archetype::Archetype;
-use crate::archetype_descriptor::ArchetypeDescriptor;
-use crate::component_group::ComponentGroup;
+use crate::descriptors::archetype_descriptor::ArchetypeDescriptor;
+use crate::descriptors::component_group::ComponentGroup;
 use crate::test_components::*;
 use crate::{Entity, MAX_ENTITIES_PER_ARCHETYPE};
 

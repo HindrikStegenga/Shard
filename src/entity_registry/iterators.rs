@@ -1,4 +1,4 @@
-use super::EntityEntry;
+use super::entry::EntityEntry;
 use crate::Entity;
 use core::iter::FusedIterator;
 

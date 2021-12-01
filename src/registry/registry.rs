@@ -2,7 +2,8 @@ use crate::archetype::Archetype;
 use crate::archetype_registry::matching_iter::{EntityMatchingIter, MatchingIter};
 use crate::archetype_registry::matching_iter_mut::{EntityMatchingIterMut, MatchingIterMut};
 use crate::archetype_registry::ArchetypeRegistry;
-use crate::{component_group::ComponentGroup, entity_registry::EntityRegistry, Component, Entity};
+use crate::{Component, Entity, entity_registry::registry::EntityRegistry};
+use crate::descriptors::component_group::ComponentGroup;
 
 /// The primary construct in the *Shard* Entity Component System (ECS).
 pub struct Registry {
@@ -345,14 +346,6 @@ impl Registry {
 
             Ok(component)
         }
-    }
-
-    pub fn replace_component<C1: Component, C2: Component>(
-        &mut self,
-        _entity: Entity,
-        _new_component: C2,
-    ) -> Result<C1, C2> {
-        todo!()
     }
 }
 

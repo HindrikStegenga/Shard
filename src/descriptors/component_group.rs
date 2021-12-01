@@ -1,7 +1,7 @@
-use crate::component_descriptor::{ComponentDescriptor, ComponentDescriptorFnPointers};
+use crate::descriptors::component_descriptor::{ComponentDescriptor, ComponentDescriptorFnPointers};
 use crate::{define_component_descriptor, Component, MAX_COMPONENTS_PER_ENTITY};
 
-use crate::component_group_descriptor::ComponentGroupDescriptor;
+use crate::descriptors::component_group_descriptor::ComponentGroupDescriptor;
 use private::SealedComponentGroup;
 
 #[macro_export]

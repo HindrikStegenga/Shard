@@ -1,18 +1,12 @@
 use alloc::vec::Vec;
 
-use crate::{
-    Entity, INVALID_ARCHETYPE_INDEX, INVALID_ENTITY_HANDLE_VALUE, MAX_ENTITIES_PER_ARCHETYPE,
-    MAX_ENTITY_HANDLE_VALUE,
-};
-
 #[cfg(test)]
 mod tests;
 
-mod entry;
-mod iterators;
-mod registry;
+pub mod entry;
+pub mod iterators;
+pub mod registry;
+pub mod entity;
 
-use entry::*;
-use iterators::*;
-
-pub(crate) use registry::*;
+pub use iterators::EntityIter;
+pub use entity::Entity;

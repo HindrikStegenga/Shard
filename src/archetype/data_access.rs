@@ -1,13 +1,10 @@
 use super::Archetype;
-use crate::component_group::*;
-use crate::entity::Entity;
-use crate::{
-    Component, DEFAULT_ARCHETYPE_ALLOCATION_SIZE, MAX_COMPONENTS_PER_ENTITY,
-    MAX_ENTITIES_PER_ARCHETYPE,
-};
+use crate::*;
+
 use alloc::alloc::{dealloc, realloc, Layout};
 use core::mem::{align_of, size_of};
 use core::ptr::{slice_from_raw_parts, slice_from_raw_parts_mut};
+use crate::constants::DEFAULT_ARCHETYPE_ALLOCATION_SIZE;
 
 impl Archetype {
     /// Returns a reference to a specific component.

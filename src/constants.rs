@@ -20,19 +20,10 @@ pub const MAX_ENTITY_VERSION_VALUE: u8 = 255;
 /// The maximum number of components an entity is allowed to have.
 pub const MAX_COMPONENTS_PER_ENTITY: usize = 14;
 
-/// The amount of entities stored in a single shard.
-pub const ENTITIES_PER_SHARD: usize = 3072;
-
-/// The maximum amount of shards that a registry can contain.
-pub const MAX_SHARD_COUNT: u16 = u16::MAX - 1;
-
-/// Valid shard indices can never have this value.
-pub const INVALID_SHARD_INDEX: u16 = u16::MAX;
-
 /// The maximum amount of unique archetypes that a registry can contain.
 pub const MAX_ARCHETYPE_COUNT: usize = (u16::MAX - 1) as usize;
 
-/// Valid archetyupe indices can never have this value.
+/// Valid archetype indices can never have this value.
 pub const INVALID_ARCHETYPE_INDEX: u16 = u16::MAX;
 
 /// Maximum amount of entities that can be stored for a given archetype.

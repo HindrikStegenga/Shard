@@ -14,11 +14,11 @@ use core::ops::{Index, IndexMut};
 use sorted_archetype_key::*;
 
 use crate::archetype::Archetype;
-use crate::archetype_descriptor::ArchetypeDescriptor;
+use crate::descriptors::archetype_descriptor::ArchetypeDescriptor;
 use crate::archetype_registry::matching_iter::{EntityMatchingIter, MatchingIter};
 use crate::archetype_registry::matching_iter_mut::{EntityMatchingIterMut, MatchingIterMut};
-use crate::component_descriptor::ComponentDescriptor;
-use crate::component_group::ComponentGroup;
+use crate::descriptors::component_descriptor::ComponentDescriptor;
+use crate::descriptors::component_group::ComponentGroup;
 use crate::constants::*;
 
 const DEFAULT_VECTOR_CAPACITY: usize = 64;

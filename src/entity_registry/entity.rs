@@ -1,4 +1,4 @@
-use crate::*;
+use crate::constants::*;
 
 /// Represents an abstract Entity. Is internally a handle into the ECS to query it's associated components.
 #[repr(transparent)]

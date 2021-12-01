@@ -1,5 +1,5 @@
 use super::*;
-use crate::component_group::ComponentGroup;
+use crate::descriptors::component_group::ComponentGroup;
 use core::iter::FusedIterator;
 use core::marker::PhantomData;
 

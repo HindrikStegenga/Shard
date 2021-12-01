@@ -147,4 +147,36 @@ fn test_registry() {
         counter += 1;
     }
     assert_eq!(counter, 2);
+
+    let entities = (0..1000).into_iter().map(|_e|{
+        registry.create_entity((A::default(), B::default())).unwrap()
+    }).collect::<Vec<_>>();
+
+    for entity in &entities {
+        let entity = entity.clone();
+        assert!(registry.add_component(entity, C::default()).is_ok());
+        assert!(registry.has_component::<C>(entity));
+    }
+    for entity in &entities {
+        let entity = entity.clone();
+        match rand::random() {
+            true => { assert!(registry.destroy_entity(entity)) },
+            false => {
+                match rand::random() {
+                    true => {
+                        assert!(registry.remove_component::<C>(entity).is_ok());
+                        assert!(registry.has_components::<(A, B)>(entity));
+                        assert_eq!(registry.has_component::<C>(entity), false);
+                        assert_eq!(registry.get_components::<(A,B)>(entity), Some((&A::default(), &B::default())));
+                    },
+                    false => {
+                        assert!(registry.remove_component::<A>(entity).is_ok());
+                        assert!(registry.has_components::<(C, B)>(entity));
+                        assert_eq!(registry.has_component::<A>(entity), false);
+                        assert_eq!(registry.get_components::<(C,B)>(entity), Some((&C::default(), &B::default())));
+                    }
+                }
+            }
+        }
+    }
 }

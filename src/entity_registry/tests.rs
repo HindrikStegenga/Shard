@@ -1,5 +1,9 @@
-use super::*;
+use super::registry::*;
+use crate::constants::*;
+use crate::*;
+
 extern crate std;
+use alloc::vec::Vec;
 
 #[test]
 fn test_entity_registry() {

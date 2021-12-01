@@ -1,4 +1,6 @@
 use super::*;
+use super::entry::*;
+use crate::constants::*;
 
 pub(crate) struct EntityRegistry {
     entities: Vec<EntityEntry>,
@@ -11,7 +13,7 @@ pub(crate) struct ValidEntityRef<'registry> {
 }
 
 impl<'registry> ValidEntityRef<'registry> {
-    // Returns the entity
+    /// Returns the entity
     pub(crate) fn entity(&self) -> Entity {
         self.entity
     }

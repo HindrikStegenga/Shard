@@ -1,6 +1,6 @@
 use super::*;
 use crate::archetype_registry::archetype_iter::ArchetypeIter;
-use crate::component_group::ComponentGroup;
+use crate::descriptors::component_group::ComponentGroup;
 use crate::Entity;
 use core::iter::FusedIterator;
 

@@ -1,5 +1,5 @@
-use crate::archetype_descriptor::ArchetypeDescriptor;
-use crate::component_descriptor::ComponentDescriptor;
+use crate::descriptors::archetype_descriptor::ArchetypeDescriptor;
+use crate::descriptors::component_descriptor::ComponentDescriptor;
 use crate::copy_component_descriptor_from_to;
 use crate::MAX_COMPONENTS_PER_ENTITY;
 
@@ -31,16 +31,13 @@ impl ComponentGroupDescriptor {
         &self.archetype
     }
 
-    pub(crate) const fn as_sorted(&self, index: u8) -> &ComponentDescriptor {
-        unsafe { &self.archetype.components_unchecked()[index as usize] }
-    }
-
-    pub(crate) const fn as_unsorted(&self, index: u8) -> &ComponentDescriptor {
+    #[allow(dead_code)]
+    pub(crate) const fn as_unsorted(&self, sorted_index: u8) -> &ComponentDescriptor {
         unsafe {
-            &self.archetype.components_unchecked()[self.sorted_to_unsorted[index as usize] as usize]
+            &self.archetype.components_unchecked()[self.sorted_to_unsorted[sorted_index as usize] as usize]
         }
     }
-
+    #[allow(dead_code)]
     pub(crate) const fn sorted_to_unsorted(&self, index: u8) -> u8 {
         self.sorted_to_unsorted[index as usize]
     }

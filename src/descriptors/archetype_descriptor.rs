@@ -1,4 +1,4 @@
-use crate::component_descriptor::ComponentDescriptor;
+use crate::descriptors::component_descriptor::ComponentDescriptor;
 use crate::fnv1a::fnv1a_hash_32;
 use crate::{constants::*, ArchetypeId, Component, ComponentTypeId};
 
@@ -191,8 +191,8 @@ impl ArchetypeDescriptor {
 
 #[cfg(test)]
 mod tests {
-    use crate::archetype_descriptor::ArchetypeDescriptor;
-    use crate::component_group::ComponentGroup;
+    use crate::descriptors::archetype_descriptor::ArchetypeDescriptor;
+    use crate::descriptors::component_group::ComponentGroup;
     use crate::test_components::*;
     use crate::Component;
 
