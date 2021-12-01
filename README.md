@@ -24,4 +24,5 @@ Shard is an Archetype-based Entity Component System implemented in Rust.
 - Filter iterators
 - Allow replacing components.
 - Allow adding/removing multiple components at once.
-- Faster archetype lookups.
+- Faster archetype lookups (using a graph).
+- Component dependencies/exclusions.
