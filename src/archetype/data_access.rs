@@ -11,7 +11,7 @@ impl Archetype {
     /// # Safety:
     /// - Component type [`C`] must be present in the archetype
     /// - panics otherwise.
-    pub(crate) unsafe fn get_component_unchecked<C: Component>(&self, index: u32) -> &C {
+    pub unsafe fn get_component_unchecked<C: Component>(&self, index: u32) -> &C {
         match self
             .descriptor
             .components()
@@ -26,7 +26,7 @@ impl Archetype {
     /// # Safety:
     /// - Component type [`C`] must be present in the archetype
     /// - panics otherwise.
-    pub(crate) unsafe fn get_component_unchecked_mut<C: Component>(
+    pub unsafe fn get_component_unchecked_mut<C: Component>(
         &mut self,
         index: u32,
     ) -> &mut C {
@@ -44,7 +44,7 @@ impl Archetype {
     /// # Safety:
     /// - Component group type [`G`] must be a subset of the types in the archetype
     /// - panics otherwise.
-    pub(crate) unsafe fn get_fuzzy_components_unchecked<'a, G: ComponentGroup<'a>>(
+    pub unsafe fn get_fuzzy_components_unchecked<'a, G: ComponentGroup<'a>>(
         &'a self,
         index: u32,
     ) -> G::RefTuple {
@@ -57,7 +57,7 @@ impl Archetype {
     /// # Safety:
     /// - Component group type [`G`] must be a subset of the types in the archetype
     /// - panics otherwise.
-    pub(crate) unsafe fn get_fuzzy_components_unchecked_mut<'a, G: ComponentGroup<'a>>(
+    pub unsafe fn get_fuzzy_components_unchecked_mut<'a, G: ComponentGroup<'a>>(
         &'a mut self,
         index: u32,
     ) -> G::MutRefTuple {
@@ -70,7 +70,7 @@ impl Archetype {
     /// # Safety:
     /// - Component type [`C`] must be present in the archetype
     /// - panics otherwise.
-    pub(crate) unsafe fn read_component_unchecked<C: Component>(&mut self, index: u32) -> C {
+    pub unsafe fn read_component_unchecked<C: Component>(&mut self, index: u32) -> C {
         match self
             .descriptor
             .components()
@@ -88,7 +88,7 @@ impl Archetype {
     /// - Must be called exactly with the component group contained in the archetype.
     /// - a compatible group type is also accepted.
     /// - [`G`] must have a valid archetype descriptor.
-    pub(crate) unsafe fn get_slices_unchecked_exact_mut<'a, G: ComponentGroup<'a>>(
+    pub unsafe fn get_slices_unchecked_exact_mut<'a, G: ComponentGroup<'a>>(
         &'a mut self,
     ) -> G::SliceMutRefTuple {
         debug_assert_eq!(
@@ -104,7 +104,7 @@ impl Archetype {
     /// - Must be called exactly with the component group contained in the archetype.
     /// - a compatible group type is also accepted.
     /// - [`G`] must have a valid archetype descriptor.
-    pub(crate) unsafe fn get_slices_unchecked_exact<'a, G: ComponentGroup<'a>>(
+    pub unsafe fn get_slices_unchecked_exact<'a, G: ComponentGroup<'a>>(
         &'a self,
     ) -> G::SliceRefTuple {
         debug_assert_eq!(
@@ -178,27 +178,27 @@ impl Archetype {
 
 impl Archetype {
     /// Returns the amount of entities currently stored in the archetype.
-    pub(crate) fn len(&self) -> u32 {
+    pub fn len(&self) -> u32 {
         self.entity_count
     }
 
     /// Returns the current capacity of the archetype.
-    pub(crate) fn capacity(&self) -> u32 {
+    pub fn capacity(&self) -> u32 {
         self.capacity
     }
 
     /// Returns whether the archetype is full or not.
-    pub(crate) fn is_full(&self) -> bool {
+    pub fn is_full(&self) -> bool {
         self.entity_count == self.capacity()
     }
 
     /// Returns a reference to the internal slice storing entity associations.
-    pub(crate) fn entities(&self) -> &[Entity] {
+    pub fn entities(&self) -> &[Entity] {
         unsafe { &*slice_from_raw_parts(self.entity_associations, self.len() as usize) }
     }
 
     /// Returns a mutable reference to the internal slice storing entity associations.
-    pub(crate) fn entities_mut(&mut self) -> &mut [Entity] {
+    pub fn entities_mut(&mut self) -> &mut [Entity] {
         unsafe { &mut *slice_from_raw_parts_mut(self.entity_associations, self.len() as usize) }
     }
 
@@ -209,7 +209,7 @@ impl Archetype {
     /// - Does not call drop on the given entity.
     /// - Increases the size of the archetype's memory allocations if required.
     /// - If resizing fails, this function will panic.
-    pub(crate) unsafe fn push_entity_unchecked<'a, G: ComponentGroup<'a>>(
+    pub unsafe fn push_entity_unchecked<'a, G: ComponentGroup<'a>>(
         &mut self,
         entity_handle: Entity,
         entity: G,
@@ -229,7 +229,7 @@ impl Archetype {
     /// Identical to push_entity_unchecked but does not actually write the entity's component data.
     /// The memory at the the returned index MUST be written with valid component data.
     /// The metadata is not set either.
-    pub(crate) unsafe fn push_uninitialized_entity(&mut self) -> u32 {
+    pub unsafe fn push_uninitialized_entity(&mut self) -> u32 {
         self.resize_if_necessary();
         let entity_index = self.len();
         self.entity_count += 1;
@@ -238,14 +238,14 @@ impl Archetype {
 
     /// Decrements archetype size by 1, therefore assuming the last entity is moved elsewhere.
     /// As such, it does not call drop on the last entity.
-    pub(crate) unsafe fn decrement_len_unchecked(&mut self) {
+    pub unsafe fn decrement_len_unchecked(&mut self) {
         self.entity_count -= 1;
     }
 
     /// Writes a single component into a specific position.
     /// Does not call drop on the existing component at index.
     /// Panics if called on an archetype that does not contain [`C`].
-    pub(crate) unsafe fn write_single_component_unchecked<C: Component>(
+    pub unsafe fn write_single_component_unchecked<C: Component>(
         &mut self,
         index: u32,
         component: C,
@@ -272,7 +272,7 @@ impl Archetype {
     /// - Assumes the underlying backing memory is sized accordingly to fit the data.
     /// - Does not increase the entity counter.
     /// - Does not check if [`index`] is out of bounds or not.
-    pub(crate) unsafe fn write_entity_unchecked<'a, G: ComponentGroup<'a>>(
+    pub unsafe fn write_entity_unchecked<'a, G: ComponentGroup<'a>>(
         &mut self,
         index: u32,
         entity_handle: Entity,
@@ -313,7 +313,7 @@ impl Archetype {
     /// Returns true if a swap occurred, or false if not.
     /// # Safety:
     /// - [`index`] must be smaller than the amount of entities in the archetype.
-    pub(crate) unsafe fn swap_drop_unchecked(&mut self, index: u32) -> bool {
+    pub unsafe fn swap_drop_unchecked(&mut self, index: u32) -> bool {
         debug_assert!(index < self.len());
         if index == self.len() - 1 {
             // Is the last one, so just drop it.
@@ -334,7 +334,7 @@ impl Archetype {
     /// Returns true if a swap occurred, or false if not.
     /// # Safety:
     /// - [`index`] must be smaller than the amount of entities in the archetype.
-    pub(crate) unsafe fn swap_to_last_unchecked(&mut self, index: u32) -> bool {
+    pub unsafe fn swap_to_last_unchecked(&mut self, index: u32) -> bool {
         debug_assert!(index < self.len());
         return if index == self.len() - 1 {
             false
@@ -353,7 +353,7 @@ impl Archetype {
     /// - [`index`] must be smaller than the amount of entities in the archetype.
     /// - [`G`] must exactly match the type store in the archetype.
     /// - Ordering of component in [`G`] may be different.
-    pub(crate) unsafe fn swap_remove_unchecked<'a, G: ComponentGroup<'a>>(
+    pub unsafe fn swap_remove_unchecked<'a, G: ComponentGroup<'a>>(
         &mut self,
         index: u32,
     ) -> (G, bool) {
@@ -376,7 +376,7 @@ impl Archetype {
     /// - [`first`] must be smaller than the amount of entities in the archetype.
     /// - [`second`] must be smaller than the amount of entities in the archetype.
     /// - [`first`] must not be equal to [`last`].
-    pub(crate) unsafe fn swap_entities(&mut self, first: u32, second: u32) {
+    pub unsafe fn swap_entities(&mut self, first: u32, second: u32) {
         for (idx, descriptor) in self.descriptor.components().iter().enumerate() {
             let ptr_first = self.pointers[idx].offset(first as isize * descriptor.size as isize);
             let ptr_second = self.pointers[idx].offset(second as isize * descriptor.size as isize);
@@ -388,7 +388,7 @@ impl Archetype {
     /// Calls drop on the entity at [`index`].
     /// # Safety:
     /// - [`index`] must be smaller than the amount of entities in the archetype.
-    pub(crate) unsafe fn drop_entity(&mut self, index: u32) {
+    pub unsafe fn drop_entity(&mut self, index: u32) {
         for (idx, descriptor) in self.descriptor.components().iter().enumerate() {
             (descriptor.fns.drop_handler)(
                 self.pointers[idx].offset(index as isize * descriptor.size as isize),
@@ -399,7 +399,7 @@ impl Archetype {
 
     /// Drops all the entities in the archetype.
     /// Does not deallocate the memory.
-    pub(crate) unsafe fn drop_entities(&mut self) {
+    pub unsafe fn drop_entities(&mut self) {
         for (idx, descriptor) in self.descriptor.components().iter().enumerate() {
             (descriptor.fns.drop_handler)(self.pointers[idx], self.len() as usize);
         }
@@ -409,7 +409,7 @@ impl Archetype {
     /// # Safety:
     /// - [`G`] must be exactly the type stored in the archetype.
     /// - a compatible one also works. (i.e. same archetype, different ordering)
-    pub(crate) unsafe fn read_components_exact_unchecked<'a, G: ComponentGroup<'a>>(
+    pub unsafe fn read_components_exact_unchecked<'a, G: ComponentGroup<'a>>(
         &self,
         index: u32,
     ) -> G {
@@ -521,7 +521,7 @@ impl Archetype {
     }
 
     /// Copies common components between two archetypes.
-    pub(crate) unsafe fn copy_common_components_between_archetypes_unchecked(
+    pub unsafe fn copy_common_components_between_archetypes_unchecked(
         source: &Archetype,
         source_index: u32,
         destination: &mut Archetype,

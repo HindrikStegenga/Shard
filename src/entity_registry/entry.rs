@@ -6,7 +6,7 @@ use crate::constants::INVALID_ARCHETYPE_INDEX;
 /// Invalid:    |version: u8|next_fr_slt: u24|INV_ARCH: u16|
 #[repr(C, align(2))]
 #[derive(Clone, Debug)]
-pub(crate) struct EntityEntry {
+pub struct EntityEntry {
     values: [u8; 6],
 }
 

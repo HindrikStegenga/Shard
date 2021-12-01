@@ -14,6 +14,7 @@ pub mod descriptors;
 mod test_components;
 
 pub use registry::Registry;
+pub use archetype::Archetype;
 pub use entity_registry::Entity;
 pub use descriptors::*;
-pub use constants::{MAX_COMPONENTS_PER_ENTITY, MAX_ENTITIES_PER_ARCHETYPE};
+pub use constants::*;

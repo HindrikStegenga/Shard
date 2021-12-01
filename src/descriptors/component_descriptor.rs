@@ -31,7 +31,7 @@ macro_rules! copy_component_descriptor_from_to {
 /// Groups special function pointers used for memory operations on component instances.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ComponentDescriptorFnPointers {
-    pub(crate) drop_handler: unsafe fn(ptr: *mut u8, len: usize),
+    pub drop_handler: unsafe fn(ptr: *mut u8, len: usize),
 }
 
 /// Describes a specific component type.
@@ -40,10 +40,10 @@ pub struct ComponentDescriptorFnPointers {
 /// - [`align`] must not exceed [`u16::MAX`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct ComponentDescriptor {
-    pub(crate) component_type_id: ComponentTypeId,
-    pub(crate) size: u16,
-    pub(crate) align: u16,
-    pub(crate) fns: ComponentDescriptorFnPointers,
+    pub component_type_id: ComponentTypeId,
+    pub size: u16,
+    pub align: u16,
+    pub fns: ComponentDescriptorFnPointers,
 }
 
 impl Into<ArchetypeDescriptor> for &ComponentDescriptor {

@@ -1,8 +1,8 @@
 pub mod matching_iter;
 pub mod matching_iter_mut;
 
-pub(crate) mod archetype_iter;
-pub(crate) mod archetype_iter_mut;
+pub mod archetype_iter;
+pub mod archetype_iter_mut;
 
 mod sorted_archetype_key;
 
@@ -25,7 +25,7 @@ const DEFAULT_VECTOR_CAPACITY: usize = 64;
 
 #[derive(Debug)]
 /// Stores all archetypes.
-pub(crate) struct ArchetypeRegistry {
+pub struct ArchetypeRegistry {
     // TODO: Currently not a great approach, should become a graph
     sorted_mappings: [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
     archetypes: Vec<Archetype>,
@@ -57,7 +57,7 @@ impl Default for ArchetypeRegistry {
 
 impl ArchetypeRegistry {
     #[allow(dead_code)]
-    pub(crate) fn find_archetype(
+    pub fn find_archetype(
         &self,
         archetype_descriptor: &ArchetypeDescriptor,
     ) -> Option<&Archetype> {
@@ -77,7 +77,7 @@ impl ArchetypeRegistry {
     }
 
     #[allow(dead_code)]
-    pub(crate) fn find_archetype_mut(
+    pub fn find_archetype_mut(
         &mut self,
         archetype_descriptor: &ArchetypeDescriptor,
     ) -> Option<&mut Archetype> {
@@ -98,7 +98,7 @@ impl ArchetypeRegistry {
 
     /// Returns mutable reference to source archetype and finds or creates a new archetype by adding
     /// the given component type as defined by component descriptor.
-    pub(crate) fn find_or_create_archetype_adding_component(
+    pub fn find_or_create_archetype_adding_component(
         &mut self,
         source_archetype_index: u16,
         component_descriptor: &ComponentDescriptor,
@@ -133,7 +133,7 @@ impl ArchetypeRegistry {
 
     /// Returns mutable reference to source archetype and finds or creates a new archetype by removing
     /// the given component type as defined by component descriptor.
-    pub(crate) fn find_or_create_archetype_removing_component(
+    pub fn find_or_create_archetype_removing_component(
         &mut self,
         source_archetype_index: u16,
         component_descriptor: &ComponentDescriptor,
@@ -166,7 +166,7 @@ impl ArchetypeRegistry {
         }
     }
 
-    pub(crate) fn find_or_create_archetype(
+    pub fn find_or_create_archetype(
         &mut self,
         archetype_descriptor: &ArchetypeDescriptor,
     ) -> Option<(u16, &mut Archetype)> {
@@ -205,33 +205,33 @@ impl ArchetypeRegistry {
         };
     }
 
-    pub(crate) unsafe fn get_unchecked(&self, index: u16) -> &Archetype {
+    pub unsafe fn get_unchecked(&self, index: u16) -> &Archetype {
         self.archetypes.get_unchecked(index as usize)
     }
 
-    pub(crate) unsafe fn get_unchecked_mut(&mut self, index: u16) -> &mut Archetype {
+    pub unsafe fn get_unchecked_mut(&mut self, index: u16) -> &mut Archetype {
         self.archetypes.get_unchecked_mut(index as usize)
     }
 
-    pub(crate) fn iter_components_matching<'a, G: ComponentGroup<'a>>(
+    pub fn iter_components_matching<'a, G: ComponentGroup<'a>>(
         &'a self,
     ) -> MatchingIter<'a, G> {
         MatchingIter::new(&self.sorted_mappings, &self.archetypes)
     }
 
-    pub(crate) fn iter_components_matching_mut<'a, G: ComponentGroup<'a>>(
+    pub fn iter_components_matching_mut<'a, G: ComponentGroup<'a>>(
         &'a mut self,
     ) -> MatchingIterMut<'a, G> {
         MatchingIterMut::new(&self.sorted_mappings, &mut self.archetypes)
     }
 
-    pub(crate) fn iter_entity_components_matching<'a, G: ComponentGroup<'a>>(
+    pub fn iter_entity_components_matching<'a, G: ComponentGroup<'a>>(
         &'a self,
     ) -> EntityMatchingIter<'a, G> {
         EntityMatchingIter::new(&self.sorted_mappings, &self.archetypes)
     }
 
-    pub(crate) fn iter_entity_components_matching_mut<'a, G: ComponentGroup<'a>>(
+    pub fn iter_entity_components_matching_mut<'a, G: ComponentGroup<'a>>(
         &'a mut self,
     ) -> EntityMatchingIterMut<'a, G> {
         EntityMatchingIterMut::new(&self.sorted_mappings, &mut self.archetypes)

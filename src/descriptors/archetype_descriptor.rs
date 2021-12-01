@@ -8,7 +8,7 @@ use crate::{constants::*, ArchetypeId, Component, ComponentTypeId};
 /// Use the [`ArchetypeDescriptor::is_valid`] function to check for validity.
 /// Any use of an invalid archetype descriptor is considered UB.
 #[derive(Debug, Clone)]
-pub(crate) struct ArchetypeDescriptor {
+pub struct ArchetypeDescriptor {
     archetype_id: ArchetypeId,
     components: [ComponentDescriptor; MAX_COMPONENTS_PER_ENTITY],
     len: u8,
@@ -46,7 +46,7 @@ impl ArchetypeDescriptor {
     }
 
     /// Computes an archetype ID, returns [`ArchetypeId::INVALID`] if given an invalid combination of components.
-    pub(crate) const fn compute_archetype_id(descriptors: &[ComponentDescriptor]) -> ArchetypeId {
+    pub const fn compute_archetype_id(descriptors: &[ComponentDescriptor]) -> ArchetypeId {
         if descriptors.is_empty() {
             return ArchetypeId::INVALID;
         }
@@ -69,7 +69,7 @@ impl ArchetypeDescriptor {
     }
 
     /// Returns whether the descriptor provided is contained in self. (i.e. subset inclusion)
-    pub(crate) const fn contains_subset(&self, descriptor: &ArchetypeDescriptor) -> bool {
+    pub const fn contains_subset(&self, descriptor: &ArchetypeDescriptor) -> bool {
         if descriptor.len() > self.len() {
             return false;
         }
@@ -95,13 +95,13 @@ impl ArchetypeDescriptor {
     /// Returns a new archetype with the given component type added to it.
     /// Returns none if the current archetype already contains the component type or it is full.
     #[allow(dead_code)]
-    pub(crate) fn add_component_from<C: Component>(&self) -> Option<ArchetypeDescriptor> {
+    pub fn add_component_from<C: Component>(&self) -> Option<ArchetypeDescriptor> {
         self.add_component(&C::DESCRIPTOR)
     }
 
     /// Returns a new archetype with the given component type added to it.
     /// Returns none if the current archetype already contains the component type or it is full.
-    pub(crate) fn add_component(
+    pub fn add_component(
         &self,
         component_descriptor: &ComponentDescriptor,
     ) -> Option<ArchetypeDescriptor> {
@@ -128,7 +128,7 @@ impl ArchetypeDescriptor {
         }
     }
 
-    pub(crate) fn remove_component(
+    pub fn remove_component(
         &self,
         component: ComponentTypeId,
     ) -> Option<ArchetypeDescriptor> {

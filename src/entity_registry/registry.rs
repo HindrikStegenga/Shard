@@ -2,30 +2,30 @@ use super::*;
 use super::entry::*;
 use crate::constants::*;
 
-pub(crate) struct EntityRegistry {
+pub struct EntityRegistry {
     entities: Vec<EntityEntry>,
     next_free_slot: u32,
 }
 
-pub(crate) struct ValidEntityRef<'registry> {
+pub struct ValidEntityRef<'registry> {
     entity: Entity,
     entry: &'registry mut EntityEntry,
 }
 
 impl<'registry> ValidEntityRef<'registry> {
     /// Returns the entity
-    pub(crate) fn entity(&self) -> Entity {
+    pub fn entity(&self) -> Entity {
         self.entity
     }
 
     /// Sets the archetype index. Panics in debug mode on invalid values!!
-    pub(crate) fn set_archetype_index(&mut self, archetype_index: u16) {
+    pub fn set_archetype_index(&mut self, archetype_index: u16) {
         debug_assert!(archetype_index != INVALID_ARCHETYPE_INDEX);
         self.entry.set_archetype_index(archetype_index);
     }
 
     /// Sets the index in the archetype. Panics in debug mode on invalid values!!
-    pub(crate) fn set_index_in_archetype(&mut self, index_in_archetype: u32) {
+    pub fn set_index_in_archetype(&mut self, index_in_archetype: u32) {
         debug_assert!(index_in_archetype < MAX_ENTITIES_PER_ARCHETYPE);
         self.entry.set_index_in_archetype(index_in_archetype);
     }
@@ -43,12 +43,12 @@ impl Default for EntityRegistry {
 impl EntityRegistry {
     /// Returns true if there is space left to store a new entity record.
     #[allow(dead_code)]
-    pub(crate) fn can_create_new_entity(&self) -> bool {
+    pub fn can_create_new_entity(&self) -> bool {
         !(self.entities.len() >= MAX_ENTITY_HANDLE_VALUE as usize)
     }
 
     /// Registers a new entity into the registry.
-    pub(crate) fn create_entity(&mut self) -> Option<ValidEntityRef> {
+    pub fn create_entity(&mut self) -> Option<ValidEntityRef> {
         if self.entities.len() >= MAX_ENTITY_HANDLE_VALUE as usize {
             return None;
         }
@@ -74,7 +74,7 @@ impl EntityRegistry {
 
     /// Registers a new entity into the registry.
     #[allow(dead_code)]
-    pub(crate) fn create_entity_with(
+    pub fn create_entity_with(
         &mut self,
         archetype_index: u16,
         index_in_archetype: u32,
@@ -103,7 +103,7 @@ impl EntityRegistry {
         };
     }
 
-    pub(crate) fn get_entity_entry(&self, entity: Entity) -> Option<&EntityEntry> {
+    pub fn get_entity_entry(&self, entity: Entity) -> Option<&EntityEntry> {
         if entity.index() as usize >= self.entities.len() || entity == Entity::INVALID {
             return None;
         }
@@ -114,7 +114,7 @@ impl EntityRegistry {
         Some(entry)
     }
 
-    pub(crate) fn get_entity_entry_mut(&mut self, entity: Entity) -> Option<&mut EntityEntry> {
+    pub fn get_entity_entry_mut(&mut self, entity: Entity) -> Option<&mut EntityEntry> {
         if entity.index() as usize >= self.entities.len() || entity == Entity::INVALID {
             return None;
         }
@@ -126,7 +126,7 @@ impl EntityRegistry {
     }
 
     /// Removes an entity from the registry.
-    pub(crate) fn destroy_entity(&mut self, entity: Entity) -> bool {
+    pub fn destroy_entity(&mut self, entity: Entity) -> bool {
         if entity.index() as usize >= self.entities.len() || entity == Entity::INVALID {
             return false;
         }
@@ -141,7 +141,7 @@ impl EntityRegistry {
         return true;
     }
 
-    pub(crate) fn iter<'a>(&'a self) -> impl Iterator<Item = Entity> + 'a {
+    pub fn iter<'a>(&'a self) -> impl Iterator<Item = Entity> + 'a {
         EntityIter::new(&self.entities)
     }
 }

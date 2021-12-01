@@ -9,7 +9,7 @@ mod data_access;
 mod tests;
 
 #[derive(Debug)]
-pub(crate) struct Archetype {
+pub struct Archetype {
     descriptor: ArchetypeDescriptor,
     pointers: [*mut u8; MAX_COMPONENTS_PER_ENTITY],
     entity_associations: *mut Entity,
