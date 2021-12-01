@@ -411,4 +411,30 @@ impl Registry {
             None => G::empty_slice_mut(),
         }
     }
+
+    /// Returns a tuple of an entity slice and component slices if the exact archetype
+    /// matching the predicate exists.
+    pub fn iter_entity_components_exact<'registry, G: ComponentGroup<'registry>>(
+        &'registry self,
+    ) -> (&[Entity], G::SliceRefTuple) {
+        match self.archetypes.find_archetype(G::DESCRIPTOR.archetype()) {
+            Some(v) => unsafe { ( v.entities(), v.get_slices_unchecked_exact::<G>()) },
+            None => (&[], G::empty_slice()),
+        }
+    }
+
+    /// Returns a tuple of an entity slice and mutable component slices if the exact archetype
+    /// matching the predicate exists.
+    pub fn iter_entity_components_exact_mut<'registry, G: ComponentGroup<'registry>>(
+        &'registry mut self,
+    ) -> (&[Entity], G::SliceMutRefTuple) {
+        match self
+            .archetypes
+            .find_archetype_mut(G::DESCRIPTOR.archetype())
+        {
+            // Safety: entities is a separate slice, not being accessed in get_slices_unchecked_exact_mut.
+            Some(v) => unsafe { ((*(v as *mut Archetype)).entities(), v.get_slices_unchecked_exact_mut::<G>()) },
+            None => (&[], G::empty_slice_mut()),
+        }
+    }
 }
