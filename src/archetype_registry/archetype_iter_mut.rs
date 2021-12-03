@@ -2,16 +2,17 @@ use super::*;
 use crate::descriptors::component_group::ComponentGroup;
 use core::iter::FusedIterator;
 use core::marker::PhantomData;
+use crate::archetype_registry::filter_clause::ComponentFilterGroup;
 
-pub(super) struct ArchetypeIterMut<'a, G: ComponentGroup<'a>> {
+pub(super) struct ArchetypeIterMut<'a, G: ComponentGroup<'a>, F: ComponentFilterGroup = ()> {
     sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
     archetypes: &'a mut [Archetype],
     current_level: u8,
     current_index_in_level: usize,
-    _phantom: PhantomData<fn(G)>,
+    _phantom: PhantomData<fn(G, F)>,
 }
 
-impl<'a, G: ComponentGroup<'a>> ArchetypeIterMut<'a, G> {
+impl<'a, G: ComponentGroup<'a>, F: ComponentFilterGroup> ArchetypeIterMut<'a, G, F> {
     pub(super) fn new(
         sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
         archetypes: &'a mut [Archetype],
@@ -26,7 +27,7 @@ impl<'a, G: ComponentGroup<'a>> ArchetypeIterMut<'a, G> {
     }
 }
 
-impl<'a, G: ComponentGroup<'a>> Iterator for ArchetypeIterMut<'a, G> {
+impl<'a, G: ComponentGroup<'a>, F: ComponentFilterGroup> Iterator for ArchetypeIterMut<'a, G, F> {
     type Item = &'a mut Archetype;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -49,7 +50,7 @@ impl<'a, G: ComponentGroup<'a>> Iterator for ArchetypeIterMut<'a, G> {
                         &mut *self.archetypes.as_mut_ptr().offset(arch_index as isize);
                     if archetype
                         .descriptor()
-                        .contains_subset(G::DESCRIPTOR.archetype())
+                        .contains_subset(G::DESCRIPTOR.archetype()) && archetype.descriptor().excludes_subset(F::EXCLUSIONS)
                     {
                         return Some(archetype);
                     }
@@ -62,4 +63,4 @@ impl<'a, G: ComponentGroup<'a>> Iterator for ArchetypeIterMut<'a, G> {
     }
 }
 
-impl<'a, G: ComponentGroup<'a>> FusedIterator for ArchetypeIterMut<'a, G> {}
+impl<'a, G: ComponentGroup<'a>, F: ComponentFilterGroup> FusedIterator for ArchetypeIterMut<'a, G, F> {}

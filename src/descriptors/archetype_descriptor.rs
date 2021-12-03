@@ -69,6 +69,7 @@ impl ArchetypeDescriptor {
     }
 
     /// Returns whether the descriptor provided is contained in self. (i.e. subset inclusion)
+    /// Do not provide an invalid descriptor to this!
     pub const fn contains_subset(&self, descriptor: &ArchetypeDescriptor) -> bool {
         if descriptor.len() > self.len() {
             return false;
@@ -88,6 +89,27 @@ impl ArchetypeDescriptor {
                 j += 1;
             }
             return false;
+        }
+        return true;
+    }
+
+    /// Returns whether the descriptor provided is excluded from self. (i.e. subset exclusion)
+    /// Do not provide an invalid descriptor to this!
+    pub const fn excludes_subset(&self, descriptor: &ArchetypeDescriptor) -> bool {
+        let mut i = 0;
+        while i < descriptor.len() {
+            let mut j = 0;
+            while j < self.len() {
+                if self.components[j as usize].component_type_id.into_u16()
+                    == descriptor.components[i as usize]
+                    .component_type_id
+                    .into_u16()
+                {
+                    return false;
+                }
+                j += 1;
+            }
+            i += 1;
         }
         return true;
     }
@@ -233,6 +255,28 @@ mod tests {
                 .archetype()
                 .contains_subset(<C as ComponentGroup>::DESCRIPTOR.archetype()),
             false
+        );
+    }
+
+    #[test]
+    fn test_archetype_descriptor_excludes() {
+        assert_eq!(
+            <(A, B) as ComponentGroup>::DESCRIPTOR
+                .archetype()
+                .excludes_subset(<C as ComponentGroup>::DESCRIPTOR.archetype()),
+            true
+        );
+        assert_eq!(
+            <(A, B) as ComponentGroup>::DESCRIPTOR
+                .archetype()
+                .excludes_subset(<A as ComponentGroup>::DESCRIPTOR.archetype()),
+            false
+        );
+        assert_eq!(
+            <(A, B) as ComponentGroup>::DESCRIPTOR
+                .archetype()
+                .contains_subset(<B as ComponentGroup>::DESCRIPTOR.archetype()),
+            true
         );
     }
 }

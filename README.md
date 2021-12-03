@@ -4,7 +4,7 @@ Shard is an Archetype-based Entity Component System implemented in Rust.
 
 # Features
 - Systems are (currently) implicit.
-- Supports no_std environments. (Requires alloc however)
+- Supports #![no_std] environments. (Requires alloc however)
 - Up to 14 components per entity.
 - Up to 65K archetypes.
 - Up to 16.7 million entities.

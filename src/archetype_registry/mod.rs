@@ -1,3 +1,5 @@
+pub mod filter_clause;
+
 pub mod matching_iter;
 pub mod matching_iter_mut;
 
