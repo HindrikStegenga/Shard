@@ -13,6 +13,8 @@ Shard is an Archetype-based Entity Component System implemented in Rust.
 
 # Usage
 
+See the examples directory for details, but in short:
+
 1. Implement Component trait for types which you wish to use as components.
 2. Create a Registry.
 3. Use the Registry to construct entities.
