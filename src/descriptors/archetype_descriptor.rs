@@ -176,7 +176,6 @@ impl ArchetypeDescriptor {
     }
 
     /// Returns whether the archetype descriptor has a given component type.
-    // TODO: Check if this can be constified somehow?
     pub fn has_component<C: Component>(&self) -> bool {
         return match self
             .components()
@@ -199,6 +198,7 @@ impl ArchetypeDescriptor {
 
     /// Get a reference to the archetype descriptor's components.
     /// This version is const but unsafe, as length is NOT accounted for.
+    /// Therefore any descriptor past the len is considered invalid or garbage data.
     pub const unsafe fn components_unchecked(
         &self,
     ) -> &[ComponentDescriptor; MAX_COMPONENTS_PER_ENTITY] {

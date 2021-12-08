@@ -1,8 +1,7 @@
 use crate::archetype::Archetype;
-use crate::archetype_registry::matching_iter::{EntityMatchingIter, MatchingIter};
-use crate::archetype_registry::matching_iter_mut::{EntityMatchingIterMut, MatchingIterMut};
 use crate::archetype_registry::ArchetypeRegistry;
 use crate::{Component, Entity, entity_registry::registry::EntityRegistry};
+use crate::archetype_descriptor::ArchetypeDescriptor;
 use crate::descriptors::component_group::ComponentGroup;
 
 /// The primary construct in the *Shard* Entity Component System (ECS).
@@ -359,39 +358,79 @@ impl Registry {
     /// matching the specified predicate.
     pub fn iter_components_matching<'registry, G: ComponentGroup<'registry>>(
         &'registry self,
-    ) -> MatchingIter<'registry, G> {
-        self.archetypes.iter_components_matching()
+    ) -> impl Iterator<Item = <G as ComponentGroup<'registry>>::SliceRefTuple> + 'registry {
+        self.archetypes.iter_components_matching::<'registry, G>()
     }
 
     /// Returns an iterator which mutably iterates over all components in archetypes
     /// matching the specified predicate.
     pub fn iter_components_matching_mut<'registry, G: ComponentGroup<'registry>>(
         &'registry mut self,
-    ) -> MatchingIterMut<'registry, G> {
-        self.archetypes.iter_components_matching_mut()
+    ) -> impl Iterator<Item = <G as ComponentGroup<'registry>>::SliceMutRefTuple> + 'registry {
+        self.archetypes.iter_components_matching_mut::<'registry, G>()
     }
 
     /// Returns an iterator which iterates over all entities and components in archetypes
     /// matching the specified predicate.
     pub fn iter_entity_components_matching<'registry, G: ComponentGroup<'registry>>(
         &'registry self,
-    ) -> EntityMatchingIter<'registry, G> {
-        self.archetypes.iter_entity_components_matching()
+    ) -> impl Iterator<Item = (&'registry [Entity], <G as ComponentGroup<'registry>>::SliceRefTuple)> + 'registry {
+        self.archetypes.iter_entity_components_matching::<'registry, G>()
     }
 
     /// Returns an iterator which mutably iterates over all entities and components in archetypes
     /// matching the specified predicate.
     pub fn iter_entity_components_matching_mut<'registry, G: ComponentGroup<'registry>>(
         &'registry mut self,
-    ) -> EntityMatchingIterMut<'registry, G> {
-        self.archetypes.iter_entity_components_matching_mut()
+    ) -> impl Iterator<Item = (&'registry [Entity], <G as ComponentGroup<'registry>>::SliceMutRefTuple)> + 'registry {
+        self.archetypes.iter_entity_components_matching_mut::<'registry, G>()
+    }
+
+    /// Returns an iterator which iterates over all components in archetypes
+    /// matching the specified predicate.
+    /// Archetypes not matching the filter closure are excluded.
+    pub fn iter_filtered_components_matching<'registry, G: ComponentGroup<'registry>, F: Fn(&ArchetypeDescriptor) -> bool + 'registry>(
+        &'registry self,
+        filter_closure: F
+    ) -> impl Iterator<Item = <G as ComponentGroup<'registry>>::SliceRefTuple> + 'registry {
+        self.archetypes.iter_filtered_components_matching::<'registry, G, F>(filter_closure)
+    }
+
+    /// Returns an iterator which mutably iterates over all components in archetypes
+    /// matching the specified predicate.
+    /// Archetypes not matching the filter closure are excluded.
+    pub fn iter_filtered_components_matching_mut<'registry, G: ComponentGroup<'registry>, F: Fn(&ArchetypeDescriptor) -> bool + 'registry>(
+        &'registry mut self,
+        filter_closure: F
+    ) -> impl Iterator<Item = <G as ComponentGroup<'registry>>::SliceMutRefTuple> + 'registry {
+        self.archetypes.iter_filtered_components_matching_mut::<'registry, G, F>(filter_closure)
+    }
+
+    /// Returns an iterator which iterates over all entities and components in archetypes
+    /// matching the specified predicate.
+    /// Archetypes not matching the filter closure are excluded.
+    pub fn iter_filtered_entity_components_matching<'registry, G: ComponentGroup<'registry>, F: Fn(&ArchetypeDescriptor) -> bool + 'registry>(
+        &'registry self,
+        filter_closure: F
+    ) -> impl Iterator<Item = (&'registry [Entity], <G as ComponentGroup<'registry>>::SliceRefTuple)> + 'registry {
+        self.archetypes.iter_filtered_entity_components_matching::<'registry, G, F>(filter_closure)
+    }
+
+    /// Returns an iterator which mutably iterates over all entities and components in archetypes
+    /// matching the specified predicate.
+    /// Archetypes not matching the filter closure are excluded.
+    pub fn iter_filtered_entity_components_matching_mut<'registry, G: ComponentGroup<'registry>, F: Fn(&ArchetypeDescriptor) -> bool + 'registry>(
+        &'registry mut self,
+        filter_closure: F
+    ) -> impl Iterator<Item = (&'registry [Entity], <G as ComponentGroup<'registry>>::SliceMutRefTuple)> + 'registry {
+        self.archetypes.iter_filtered_entity_components_matching_mut::<'registry, G, F>(filter_closure)
     }
 
     /// Returns a tuple of component slices if the exact archetype
     /// matching the predicate exists.
     pub fn iter_components_exact<'registry, G: ComponentGroup<'registry>>(
         &'registry self,
-    ) -> G::SliceRefTuple {
+    ) -> <G as ComponentGroup<'registry>>::SliceRefTuple {
         match self.archetypes.find_archetype(G::DESCRIPTOR.archetype()) {
             Some(v) => unsafe { v.get_slices_unchecked_exact::<G>() },
             None => G::empty_slice(),
@@ -402,7 +441,7 @@ impl Registry {
     /// matching the predicate exists.
     pub fn iter_components_exact_mut<'registry, G: ComponentGroup<'registry>>(
         &'registry mut self,
-    ) -> G::SliceMutRefTuple {
+    ) -> <G as ComponentGroup<'registry>>::SliceMutRefTuple {
         match self
             .archetypes
             .find_archetype_mut(G::DESCRIPTOR.archetype())
@@ -416,7 +455,7 @@ impl Registry {
     /// matching the predicate exists.
     pub fn iter_entity_components_exact<'registry, G: ComponentGroup<'registry>>(
         &'registry self,
-    ) -> (&[Entity], G::SliceRefTuple) {
+    ) -> (&'registry [Entity], <G as ComponentGroup<'registry>>::SliceRefTuple) {
         match self.archetypes.find_archetype(G::DESCRIPTOR.archetype()) {
             Some(v) => unsafe { ( v.entities(), v.get_slices_unchecked_exact::<G>()) },
             None => (&[], G::empty_slice()),
@@ -427,7 +466,7 @@ impl Registry {
     /// matching the predicate exists.
     pub fn iter_entity_components_exact_mut<'registry, G: ComponentGroup<'registry>>(
         &'registry mut self,
-    ) -> (&[Entity], G::SliceMutRefTuple) {
+    ) -> (&'registry [Entity], <G as ComponentGroup<'registry>>::SliceMutRefTuple) {
         match self
             .archetypes
             .find_archetype_mut(G::DESCRIPTOR.archetype())

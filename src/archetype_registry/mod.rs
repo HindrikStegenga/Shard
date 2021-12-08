@@ -1,13 +1,10 @@
-pub mod matching_iter;
-pub mod matching_iter_mut;
 
-pub mod archetype_iter;
-pub mod archetype_iter_mut;
 
 mod sorted_archetype_key;
 
 #[cfg(test)]
 mod tests;
+pub(crate) mod iterators;
 
 use alloc::vec::*;
 use core::ops::{Index, IndexMut};
@@ -15,11 +12,11 @@ use sorted_archetype_key::*;
 
 use crate::archetype::Archetype;
 use crate::descriptors::archetype_descriptor::ArchetypeDescriptor;
-use crate::archetype_registry::matching_iter::{EntityMatchingIter, MatchingIter};
-use crate::archetype_registry::matching_iter_mut::{EntityMatchingIterMut, MatchingIterMut};
+use crate::archetype_registry::iterators::*;
 use crate::descriptors::component_descriptor::ComponentDescriptor;
 use crate::descriptors::component_group::ComponentGroup;
 use crate::constants::*;
+use crate::Entity;
 
 const DEFAULT_VECTOR_CAPACITY: usize = 64;
 
@@ -215,26 +212,54 @@ impl ArchetypeRegistry {
 
     pub fn iter_components_matching<'a, G: ComponentGroup<'a>>(
         &'a self,
-    ) -> MatchingIter<'a, G> {
-        MatchingIter::new(&self.sorted_mappings, &self.archetypes)
+    ) -> impl Iterator<Item = <G as ComponentGroup<'a>>::SliceRefTuple> {
+        MatchingIter::<'a, G>::new(&self.sorted_mappings, &self.archetypes)
     }
 
     pub fn iter_components_matching_mut<'a, G: ComponentGroup<'a>>(
         &'a mut self,
-    ) -> MatchingIterMut<'a, G> {
-        MatchingIterMut::new(&self.sorted_mappings, &mut self.archetypes)
+    ) -> impl Iterator<Item = <G as ComponentGroup<'a>>::SliceMutRefTuple> {
+        MatchingIterMut::<'a, G>::new(&self.sorted_mappings, &mut self.archetypes)
     }
 
     pub fn iter_entity_components_matching<'a, G: ComponentGroup<'a>>(
         &'a self,
-    ) -> EntityMatchingIter<'a, G> {
-        EntityMatchingIter::new(&self.sorted_mappings, &self.archetypes)
+    ) -> impl Iterator<Item = (&'a [Entity], <G as ComponentGroup<'a>>::SliceRefTuple)> {
+        EntityMatchingIter::<'a, G>::new(&self.sorted_mappings, &self.archetypes)
     }
 
     pub fn iter_entity_components_matching_mut<'a, G: ComponentGroup<'a>>(
         &'a mut self,
-    ) -> EntityMatchingIterMut<'a, G> {
-        EntityMatchingIterMut::new(&self.sorted_mappings, &mut self.archetypes)
+    ) -> impl Iterator<Item = (&'a [Entity], <G as ComponentGroup<'a>>::SliceMutRefTuple)> {
+        EntityMatchingIterMut::<'a, G>::new(&self.sorted_mappings, &mut self.archetypes)
+    }
+
+    pub fn iter_filtered_components_matching<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool>(
+        &'a self,
+        filter_closure: F,
+    ) -> impl Iterator<Item = <G as ComponentGroup<'a>>::SliceRefTuple> {
+        FilterMatchingIter::<'a, G, F>::new(&self.sorted_mappings, &self.archetypes, filter_closure)
+    }
+
+    pub fn iter_filtered_components_matching_mut<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool>(
+        &'a mut self,
+        filter_closure: F,
+    ) -> impl Iterator<Item = <G as ComponentGroup<'a>>::SliceMutRefTuple> {
+        FilterMatchingIterMut::<'a, G, F>::new(&self.sorted_mappings, &mut self.archetypes, filter_closure)
+    }
+
+    pub fn iter_filtered_entity_components_matching<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool>(
+        &'a self,
+        filter_closure: F,
+    ) -> impl Iterator<Item = (&'a [Entity], <G as ComponentGroup<'a>>::SliceRefTuple)> {
+        FilterEntityMatchingIter::<'a, G, F>::new(&self.sorted_mappings, &self.archetypes, filter_closure)
+    }
+
+    pub fn iter_filtered_entity_components_matching_mut<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool>(
+        &'a mut self,
+        filter_closure: F,
+    ) -> impl Iterator<Item = (&'a [Entity], <G as ComponentGroup<'a>>::SliceMutRefTuple)> {
+        FilterEntityMatchingIterMut::<'a, G, F>::new(&self.sorted_mappings, &mut self.archetypes, filter_closure)
     }
 }
 

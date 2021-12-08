@@ -23,7 +23,7 @@ See the examples directory for details, but in short:
 
 # TODO:
 - Query support
-- Filter iterators
+- ~~Filter iterators~~ => done as of 0.2.3.
 - Allow replacing components.
 - Allow adding/removing multiple components at once.
 - Faster archetype lookups (using a graph).

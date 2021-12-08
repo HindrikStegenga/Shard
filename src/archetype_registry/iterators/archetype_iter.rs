@@ -1,9 +1,10 @@
-use super::*;
+use super::super::*;
+use alloc::vec::*;
 use crate::descriptors::component_group::ComponentGroup;
 use core::iter::FusedIterator;
 use core::marker::PhantomData;
 
-pub(super) struct ArchetypeIter<'a, G: ComponentGroup<'a>> {
+pub(crate) struct ArchetypeIter<'a, G: ComponentGroup<'a>> {
     sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
     archetypes: &'a [Archetype],
     current_level: u8,
@@ -12,7 +13,8 @@ pub(super) struct ArchetypeIter<'a, G: ComponentGroup<'a>> {
 }
 
 impl<'a, G: ComponentGroup<'a>> ArchetypeIter<'a, G> {
-    pub(super) fn new(
+    pub(in crate::archetype_registry)
+    fn new(
         sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
         archetypes: &'a [Archetype],
     ) -> Self {

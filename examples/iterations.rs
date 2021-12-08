@@ -48,7 +48,18 @@ fn main() {
 
     // You can also match all entities with specified components. This means that it will also
     // entities which contain more than the specified components.
-    registry.iter_components_matching::<(Position)>().for_each(|position_slice|{
+    registry.iter_components_matching::<Position>().for_each(|position_slice|{
+        // For example, the above match will match entities with (Position) but also with (Position, Rotation).
+        position_slice.iter().for_each(|position| {
+            // Do something with the position object, like compute a new position it.
+        })
+    });
+
+    // Arbitrary filtering is also supported. As an example, archetypes including a specific component can be excluded.
+    registry.iter_filtered_components_matching::<Position, _>(|a|{
+        !a.has_component::<Rotation>() // All archetypes with a position match, except those which also have a rotation.
+        // This closure must return true for everything that needs to be included, false otherwise.
+    }).for_each(|position_slice|{
         // For example, the above match will match entities with (Position) but also with (Position, Rotation).
         position_slice.iter().for_each(|position| {
             // Do something with the position object, like compute a new position it.
@@ -56,7 +67,7 @@ fn main() {
     });
 
     // You can also iterate over component slices with their associated entity handles:
-    registry.iter_entity_components_matching::<(Rotation)>().for_each(|(entities_slice,rotation_slice)|{
+    registry.iter_entity_components_matching::<Rotation>().for_each(|(entities_slice,rotation_slice)|{
         entities_slice.iter().zip(rotation_slice).for_each(|(entity, rotation)| {
             // You have access to the entity handle here as well.
         })

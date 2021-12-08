@@ -1,15 +1,17 @@
 use super::*;
-use crate::archetype_registry::archetype_iter::ArchetypeIter;
+use super::super::*;
+use alloc::vec::*;
 use crate::descriptors::component_group::ComponentGroup;
 use crate::Entity;
 use core::iter::FusedIterator;
 
-pub struct MatchingIter<'a, G: ComponentGroup<'a>> {
+pub(crate) struct MatchingIter<'a, G: ComponentGroup<'a>> {
     inner_iterator: ArchetypeIter<'a, G>,
 }
 
 impl<'a, G: ComponentGroup<'a>> MatchingIter<'a, G> {
-    pub(super) fn new(
+    pub(in crate::archetype_registry)
+    fn new(
         sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
         archetypes: &'a [Archetype],
     ) -> Self {
@@ -30,12 +32,13 @@ impl<'a, G: ComponentGroup<'a>> Iterator for MatchingIter<'a, G> {
 
 impl<'a, G: ComponentGroup<'a>> FusedIterator for MatchingIter<'a, G> {}
 
-pub struct EntityMatchingIter<'a, G: ComponentGroup<'a>> {
+pub(crate) struct EntityMatchingIter<'a, G: ComponentGroup<'a>> {
     inner_iterator: ArchetypeIter<'a, G>,
 }
 
 impl<'a, G: ComponentGroup<'a>> EntityMatchingIter<'a, G> {
-    pub(super) fn new(
+    pub(in crate::archetype_registry)
+    fn new(
         sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
         archetypes: &'a [Archetype],
     ) -> Self {

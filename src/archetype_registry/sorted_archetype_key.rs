@@ -1,7 +1,7 @@
 use crate::ArchetypeId;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub(super) struct SortedArchetypeKey {
-    pub(super) id: ArchetypeId,
-    pub(super) archetype_index: u16,
+pub(in crate::archetype_registry) struct SortedArchetypeKey {
+    pub(crate) id: ArchetypeId,
+    pub(in crate::archetype_registry) archetype_index: u16,
 }
