@@ -2,17 +2,16 @@ use super::*;
 use crate::descriptors::component_group::ComponentGroup;
 use core::iter::FusedIterator;
 use core::marker::PhantomData;
-use crate::archetype_registry::filter_clause::ComponentFilterGroup;
 
-pub(super) struct ArchetypeIter<'a, G: ComponentGroup<'a>, F: ComponentFilterGroup = ()> {
+pub(super) struct ArchetypeIter<'a, G: ComponentGroup<'a>> {
     sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
     archetypes: &'a [Archetype],
     current_level: u8,
     current_index_in_level: usize,
-    _phantom: PhantomData<fn(G, F)>,
+    _phantom: PhantomData<fn(G)>,
 }
 
-impl<'a, G: ComponentGroup<'a>, F: ComponentFilterGroup> ArchetypeIter<'a, G, F> {
+impl<'a, G: ComponentGroup<'a>> ArchetypeIter<'a, G> {
     pub(super) fn new(
         sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
         archetypes: &'a [Archetype],
@@ -27,7 +26,7 @@ impl<'a, G: ComponentGroup<'a>, F: ComponentFilterGroup> ArchetypeIter<'a, G, F>
     }
 }
 
-impl<'a, G: ComponentGroup<'a>, F: ComponentFilterGroup> Iterator for ArchetypeIter<'a, G, F> {
+impl<'a, G: ComponentGroup<'a>> Iterator for ArchetypeIter<'a, G> {
     type Item = &'a Archetype;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -47,7 +46,7 @@ impl<'a, G: ComponentGroup<'a>, F: ComponentFilterGroup> Iterator for ArchetypeI
                     let archetype = &self.archetypes.get_unchecked(arch_index as usize);
                     if archetype
                         .descriptor()
-                        .contains_subset(G::DESCRIPTOR.archetype()) && archetype.descriptor().excludes_subset(F::EXCLUSIONS)
+                        .contains_subset(G::DESCRIPTOR.archetype())
                     {
                         return Some(archetype);
                     }
@@ -60,4 +59,4 @@ impl<'a, G: ComponentGroup<'a>, F: ComponentFilterGroup> Iterator for ArchetypeI
     }
 }
 
-impl<'a, G: ComponentGroup<'a>, F: ComponentFilterGroup> FusedIterator for ArchetypeIter<'a, G, F> {}
+impl<'a, G: ComponentGroup<'a>> FusedIterator for ArchetypeIter<'a, G> {}
