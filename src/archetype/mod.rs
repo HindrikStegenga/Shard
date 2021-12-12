@@ -17,7 +17,8 @@ pub struct Archetype {
     capacity: u32,
 }
 
-unsafe impl Send for Registry {}
+unsafe impl Send for Archetype {}
+unsafe impl Sync for Archetype {}
 
 impl Archetype {
     /// Creates an archetype with the default amount of memory allocated for it.
