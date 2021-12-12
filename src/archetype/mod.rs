@@ -17,6 +17,8 @@ pub struct Archetype {
     capacity: u32,
 }
 
+unsafe impl Send for Registry {}
+
 impl Archetype {
     /// Creates an archetype with the default amount of memory allocated for it.
     /// Panics if the provided archetype descriptor is invalid.
