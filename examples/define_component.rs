@@ -11,6 +11,12 @@ impl Component for Position {
     const NAME: &'static str = "Position";
 }
 
+// You can also use a derive macro if the "derive" feature is enabled:
+#[cfg(feature = "derive")]
+#[derive(Component)]
+struct DeriveExample {
+    foo: f32
+}
 
 fn main() {
     // code ..

@@ -1,18 +1,16 @@
 [package]
-name = "shard-ecs"
-version = "0.2.6"
+name = "shard_ecs_derive"
+version = "0.1.0"
 edition = "2021"
 authors = ["Hindrik Stegenga <mail@hindrik.dev>"]
-description = "The Shard Entity Component System."
+description = "Contains derive macros for the Shard Entity Component System."
 license = "MIT"
 homepage = "https://github.com/HindrikStegenga/Shard"
 repository = "https://github.com/HindrikStegenga/Shard"
 
-[features]
-derive = ["shard_ecs_derive"]
+[lib]
+proc-macro = true
 
 [dependencies]
-shard_ecs_derive = { version = "0.1.0", optional = true}
-
-[dev-dependencies]
-rand = "0.8.4"
+syn = "1.0"
+quote = "1.0"

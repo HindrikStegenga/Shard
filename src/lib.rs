@@ -18,3 +18,6 @@ pub use archetype::Archetype;
 pub use entity_registry::Entity;
 pub use descriptors::*;
 pub use constants::*;
+
+#[cfg(feature = "derive")]
+pub use shard_ecs_derive::*;
