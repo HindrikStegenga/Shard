@@ -1,8 +1,8 @@
+use crate::constants::DEFAULT_ARCHETYPE_ALLOCATION_SIZE;
 use crate::descriptors::archetype_descriptor::ArchetypeDescriptor;
 use crate::*;
 use alloc::alloc::{alloc, Layout};
 use core::mem::{align_of, size_of};
-use crate::constants::DEFAULT_ARCHETYPE_ALLOCATION_SIZE;
 
 mod data_access;
 #[cfg(test)]

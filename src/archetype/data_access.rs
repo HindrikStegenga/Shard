@@ -1,10 +1,10 @@
 use super::Archetype;
 use crate::*;
 
+use crate::constants::DEFAULT_ARCHETYPE_ALLOCATION_SIZE;
 use alloc::alloc::{dealloc, realloc, Layout};
 use core::mem::{align_of, size_of};
 use core::ptr::{slice_from_raw_parts, slice_from_raw_parts_mut};
-use crate::constants::DEFAULT_ARCHETYPE_ALLOCATION_SIZE;
 
 impl Archetype {
     /// Returns a reference to a specific component.
@@ -26,10 +26,7 @@ impl Archetype {
     /// # Safety:
     /// - Component type [`C`] must be present in the archetype
     /// - panics otherwise.
-    pub unsafe fn get_component_unchecked_mut<C: Component>(
-        &mut self,
-        index: u32,
-    ) -> &mut C {
+    pub unsafe fn get_component_unchecked_mut<C: Component>(&mut self, index: u32) -> &mut C {
         match self
             .descriptor
             .components()
@@ -221,8 +218,8 @@ impl Archetype {
         );
         self.resize_if_necessary();
         let entity_index = self.len();
-        self.write_entity_unchecked(entity_index, entity_handle, entity);
         self.entity_count += 1;
+        self.write_entity_unchecked(entity_index, entity_handle, entity);
         entity_index
     }
 
@@ -302,7 +299,7 @@ impl Archetype {
                 component.size as usize,
             );
         }
-        *self.entities_mut().get_unchecked_mut(index as usize) = entity_handle;
+        self.entities_mut()[index as usize] = entity_handle;
         core::mem::forget(entity);
     }
 
@@ -450,7 +447,7 @@ impl Archetype {
             .enumerate()
         {
             let component_type = &self.descriptor.components()[index];
-            let layout = alloc::alloc::Layout::from_size_align_unchecked(
+            let layout = Layout::from_size_align_unchecked(
                 component_type.size as usize * old_capacity as usize,
                 component_type.align as usize,
             );
@@ -476,7 +473,7 @@ impl Archetype {
                 return;
             }
             let component_type = &self.descriptor.components()[index];
-            let layout = alloc::alloc::Layout::from_size_align_unchecked(
+            let layout = Layout::from_size_align_unchecked(
                 component_type.size as usize * self.capacity as usize,
                 component_type.align as usize,
             );

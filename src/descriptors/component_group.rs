@@ -1,4 +1,6 @@
-use crate::descriptors::component_descriptor::{ComponentDescriptor, ComponentDescriptorFnPointers};
+use crate::descriptors::component_descriptor::{
+    ComponentDescriptor, ComponentDescriptorFnPointers,
+};
 use crate::{define_component_descriptor, Component, MAX_COMPONENTS_PER_ENTITY};
 
 use crate::descriptors::component_group_descriptor::ComponentGroupDescriptor;

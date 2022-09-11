@@ -1,5 +1,5 @@
-use super::*;
 use super::entry::*;
+use super::*;
 use crate::constants::*;
 
 pub struct EntityRegistry {
@@ -34,7 +34,7 @@ impl<'registry> ValidEntityRef<'registry> {
 impl Default for EntityRegistry {
     fn default() -> Self {
         Self {
-            entities: Vec::with_capacity(8192),
+            entities: Vec::with_capacity(128),
             next_free_slot: INVALID_ENTITY_HANDLE_VALUE,
         }
     }

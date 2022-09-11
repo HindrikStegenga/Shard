@@ -1,21 +1,24 @@
 use super::super::*;
-use alloc::vec::*;
 use crate::descriptors::component_group::ComponentGroup;
+use alloc::vec::*;
 use core::iter::FusedIterator;
 use core::marker::PhantomData;
 
-pub(crate) struct FilterArchetypeIter<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> {
+pub(crate) struct FilterArchetypeIter<
+    'a,
+    G: ComponentGroup<'a>,
+    F: Fn(&ArchetypeDescriptor) -> bool,
+> {
     sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
     archetypes: &'a [Archetype],
     current_level: u8,
     current_index_in_level: usize,
-    filter_closure:  F,
+    filter_closure: F,
     _phantom: PhantomData<fn(G)>,
 }
 
-impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor)->bool> FilterArchetypeIter<'a, G, F> {
-    pub(in crate::archetype_registry)
-    fn new(
+impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> FilterArchetypeIter<'a, G, F> {
+    pub(in crate::archetype_registry) fn new(
         sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
         archetypes: &'a [Archetype],
         filter_closure: F,
@@ -26,12 +29,14 @@ impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor)->bool> FilterArchety
             current_level: G::DESCRIPTOR.len() - 1,
             current_index_in_level: 0,
             _phantom: Default::default(),
-            filter_closure
+            filter_closure,
         }
     }
 }
 
-impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> Iterator for FilterArchetypeIter<'a, G, F> {
+impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> Iterator
+    for FilterArchetypeIter<'a, G, F>
+{
     type Item = &'a Archetype;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -51,7 +56,8 @@ impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> Iterator fo
                     let archetype = &self.archetypes.get_unchecked(arch_index as usize);
                     if archetype
                         .descriptor()
-                        .contains_subset(G::DESCRIPTOR.archetype()) && (self.filter_closure)(archetype.descriptor())
+                        .contains_subset(G::DESCRIPTOR.archetype())
+                        && (self.filter_closure)(archetype.descriptor())
                     {
                         return Some(archetype);
                     }
@@ -64,4 +70,7 @@ impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> Iterator fo
     }
 }
 
-impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> FusedIterator for FilterArchetypeIter<'a, G, F> {}
+impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> FusedIterator
+    for FilterArchetypeIter<'a, G, F>
+{
+}

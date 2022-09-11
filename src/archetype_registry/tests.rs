@@ -8,7 +8,7 @@ fn test_archetype_registry() {
     let mut registry = ArchetypeRegistry::default();
     let descriptor = <(A, B) as ComponentGroup>::DESCRIPTOR.archetype();
     let (_, archetype) = registry.find_or_create_archetype(&descriptor).unwrap();
-    (0..1048576).for_each(|e| unsafe {
+    (0..1).for_each(|e| unsafe {
         let _ = archetype.push_entity_unchecked(
             Entity::new_unchecked(e as u32, 0),
             (A { _data: e }, B { _data: 1048576 - e }),

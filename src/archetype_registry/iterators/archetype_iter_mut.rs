@@ -1,6 +1,6 @@
 use super::super::*;
-use alloc::vec::*;
 use crate::descriptors::component_group::ComponentGroup;
+use alloc::vec::*;
 use core::iter::FusedIterator;
 use core::marker::PhantomData;
 
@@ -13,8 +13,7 @@ pub(crate) struct ArchetypeIterMut<'a, G: ComponentGroup<'a>> {
 }
 
 impl<'a, G: ComponentGroup<'a>> ArchetypeIterMut<'a, G> {
-    pub(in crate::archetype_registry)
-    fn new(
+    pub(in crate::archetype_registry) fn new(
         sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
         archetypes: &'a mut [Archetype],
     ) -> Self {

@@ -1,8 +1,11 @@
 use shard_ecs::*;
+#[allow(unused)]
 
 // Some random struct.
 struct Position {
-    x: f32, y: f32, z: f32
+    x: f32,
+    y: f32,
+    z: f32,
 }
 
 // Implement the Component trait for it like this.
@@ -15,7 +18,7 @@ impl Component for Position {
 #[cfg(feature = "derive")]
 #[derive(Component)]
 struct DeriveExample {
-    foo: f32
+    foo: f32,
 }
 
 fn main() {

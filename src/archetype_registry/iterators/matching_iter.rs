@@ -1,8 +1,8 @@
-use super::*;
 use super::super::*;
-use alloc::vec::*;
+use super::*;
 use crate::descriptors::component_group::ComponentGroup;
 use crate::Entity;
+use alloc::vec::*;
 use core::iter::FusedIterator;
 
 pub(crate) struct MatchingIter<'a, G: ComponentGroup<'a>> {
@@ -10,8 +10,7 @@ pub(crate) struct MatchingIter<'a, G: ComponentGroup<'a>> {
 }
 
 impl<'a, G: ComponentGroup<'a>> MatchingIter<'a, G> {
-    pub(in crate::archetype_registry)
-    fn new(
+    pub(in crate::archetype_registry) fn new(
         sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
         archetypes: &'a [Archetype],
     ) -> Self {
@@ -37,8 +36,7 @@ pub(crate) struct EntityMatchingIter<'a, G: ComponentGroup<'a>> {
 }
 
 impl<'a, G: ComponentGroup<'a>> EntityMatchingIter<'a, G> {
-    pub(in crate::archetype_registry)
-    fn new(
+    pub(in crate::archetype_registry) fn new(
         sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
         archetypes: &'a [Archetype],
     ) -> Self {

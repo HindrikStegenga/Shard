@@ -1,27 +1,38 @@
 use shard_ecs::*;
-
+#[allow(unused)]
 #[derive(Debug, Clone)]
 struct Position {
-    x: f32, y: f32, z: f32
+    x: f32,
+    y: f32,
+    z: f32,
 }
 impl Component for Position {
     const NAME: &'static str = "Position";
 }
+#[allow(unused)]
 #[derive(Debug, Clone)]
 struct Rotation {
-    x: f32, y: f32, z: f32, w: f32
+    x: f32,
+    y: f32,
+    z: f32,
+    w: f32,
 }
 impl Component for Rotation {
     const NAME: &'static str = "Position";
 }
 
+#[allow(unused)]
 fn main() {
-    let position = Position { x: 2.0, y: 9.1, z: -2.0 };
+    let position = Position {
+        x: 2.0,
+        y: 9.1,
+        z: -2.0,
+    };
     let rotation = Rotation {
         x: 3.0,
         y: 5.0,
         z: 1.0,
-        w: 7.0
+        w: 7.0,
     };
 
     let mut registry = Registry::default();

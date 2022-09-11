@@ -102,8 +102,8 @@ impl ArchetypeDescriptor {
             while j < self.len() {
                 if self.components[j as usize].component_type_id.into_u16()
                     == descriptor.components[i as usize]
-                    .component_type_id
-                    .into_u16()
+                        .component_type_id
+                        .into_u16()
                 {
                     return false;
                 }
@@ -150,10 +150,7 @@ impl ArchetypeDescriptor {
         }
     }
 
-    pub fn remove_component(
-        &self,
-        component: ComponentTypeId,
-    ) -> Option<ArchetypeDescriptor> {
+    pub fn remove_component(&self, component: ComponentTypeId) -> Option<ArchetypeDescriptor> {
         if self.len() as usize == 1 {
             return None; // Archetype cannot contain zero components.
         }

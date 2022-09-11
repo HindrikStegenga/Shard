@@ -1,8 +1,8 @@
 use core::mem::ManuallyDrop;
 
-use crate::Component;
 use crate::descriptors::archetype_descriptor::ArchetypeDescriptor;
 use crate::descriptors::component_type_id::ComponentTypeId;
+use crate::Component;
 
 #[macro_export]
 macro_rules! define_component_descriptor {

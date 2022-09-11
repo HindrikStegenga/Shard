@@ -1,6 +1,6 @@
+use crate::copy_component_descriptor_from_to;
 use crate::descriptors::archetype_descriptor::ArchetypeDescriptor;
 use crate::descriptors::component_descriptor::ComponentDescriptor;
-use crate::copy_component_descriptor_from_to;
 use crate::MAX_COMPONENTS_PER_ENTITY;
 
 /// Describes a group of components.
@@ -34,7 +34,8 @@ impl ComponentGroupDescriptor {
     #[allow(dead_code)]
     pub const fn as_unsorted(&self, sorted_index: u8) -> &ComponentDescriptor {
         unsafe {
-            &self.archetype.components_unchecked()[self.sorted_to_unsorted[sorted_index as usize] as usize]
+            &self.archetype.components_unchecked()
+                [self.sorted_to_unsorted[sorted_index as usize] as usize]
         }
     }
     #[allow(dead_code)]

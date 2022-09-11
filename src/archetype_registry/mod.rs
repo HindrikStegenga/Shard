@@ -1,24 +1,39 @@
-
-
 mod sorted_archetype_key;
 
+pub(crate) mod iterators;
 #[cfg(test)]
 mod tests;
-pub(crate) mod iterators;
 
 use alloc::vec::*;
 use core::ops::{Index, IndexMut};
 use sorted_archetype_key::*;
 
 use crate::archetype::Archetype;
-use crate::descriptors::archetype_descriptor::ArchetypeDescriptor;
 use crate::archetype_registry::iterators::*;
+use crate::constants::*;
+use crate::descriptors::archetype_descriptor::ArchetypeDescriptor;
 use crate::descriptors::component_descriptor::ComponentDescriptor;
 use crate::descriptors::component_group::ComponentGroup;
-use crate::constants::*;
 use crate::Entity;
 
 const DEFAULT_VECTOR_CAPACITY: usize = 64;
+
+#[doc(hidden)]
+fn disjoint_mut<T>(slice: &mut [T], first: usize, second: usize) -> Option<(&mut T, &mut T)> {
+    if first == second || first >= slice.len() || second >= slice.len() {
+        return None;
+    }
+
+    Some({
+        if first < second {
+            let (head, tail) = slice.split_at_mut(first + 1);
+            (&mut head[first], &mut tail[second - first - 1])
+        } else {
+            let (head, tail) = slice.split_at_mut(second + 1);
+            (&mut tail[first - second - 1], &mut head[second])
+        }
+    })
+}
 
 #[derive(Debug)]
 /// Stores all archetypes.
@@ -54,10 +69,7 @@ impl Default for ArchetypeRegistry {
 
 impl ArchetypeRegistry {
     #[allow(dead_code)]
-    pub fn find_archetype(
-        &self,
-        archetype_descriptor: &ArchetypeDescriptor,
-    ) -> Option<&Archetype> {
+    pub fn find_archetype(&self, archetype_descriptor: &ArchetypeDescriptor) -> Option<&Archetype> {
         let len = archetype_descriptor.len() as usize;
         if len > MAX_COMPONENTS_PER_ENTITY || !archetype_descriptor.is_valid() {
             return None;
@@ -104,28 +116,21 @@ impl ArchetypeRegistry {
         if source_archetype_index as usize > self.archetypes.len() {
             return None;
         }
+        // create new archetype
+        let new_archetype_descriptor = self.archetypes[source_archetype_index as usize]
+            .descriptor()
+            .add_component(component_descriptor)?;
 
-        unsafe {
-            // Safety: this pointer always is into self, and since we are adding a component to
-            // the archetype descriptor, this means that the destination_archetype is always a different
-            // one than the source archetype. As such, we can safely do this rather than needing to go
-            // through split_at_mut() and remapping indices.
-            let source_archetype: *mut Archetype = self
-                .archetypes
-                .get_unchecked_mut(source_archetype_index as usize);
+        let (destination_archetype_index, _) =
+            self.find_or_create_archetype(&new_archetype_descriptor)?;
 
-            let new_archetype_descriptor = (*source_archetype)
-                .descriptor()
-                .add_component(component_descriptor)?;
-            let (destination_archetype_index, destination_archetype) =
-                self.find_or_create_archetype(&new_archetype_descriptor)?;
+        let (source, destination) = disjoint_mut(
+            &mut self.archetypes,
+            source_archetype_index as usize,
+            destination_archetype_index as usize,
+        )?;
 
-            Some((
-                &mut *source_archetype,
-                destination_archetype_index,
-                destination_archetype,
-            ))
-        }
+        Some((source, destination_archetype_index, destination))
     }
 
     /// Returns mutable reference to source archetype and finds or creates a new archetype by removing
@@ -140,27 +145,20 @@ impl ArchetypeRegistry {
             return None;
         }
 
-        unsafe {
-            // Safety: this pointer always is into self, and since we are removing a component from
-            // the archetype descriptor, this means that the destination_archetype is always a different
-            // one than the source archetype. As such, we can safely do this rather than needing to go
-            // through split_at_mut() and remapping indices.
-            let source_archetype: *mut Archetype = self
-                .archetypes
-                .get_unchecked_mut(source_archetype_index as usize);
+        // create new archetype
+        let new_archetype_descriptor = self.archetypes[source_archetype_index as usize]
+            .descriptor()
+            .remove_component(component_descriptor.component_type_id())?;
 
-            let new_archetype_descriptor = (*source_archetype)
-                .descriptor()
-                .remove_component(component_descriptor.component_type_id())?;
-            let (destination_archetype_index, destination_archetype) =
-                self.find_or_create_archetype(&new_archetype_descriptor)?;
+        let (destination_archetype_index, _) =
+            self.find_or_create_archetype(&new_archetype_descriptor)?;
 
-            Some((
-                &mut *source_archetype,
-                destination_archetype_index,
-                destination_archetype,
-            ))
-        }
+        let (source, destination) = disjoint_mut(
+            &mut self.archetypes,
+            source_archetype_index as usize,
+            destination_archetype_index as usize,
+        )?;
+        Some((source, destination_archetype_index, destination))
     }
 
     pub fn find_or_create_archetype(
@@ -234,32 +232,60 @@ impl ArchetypeRegistry {
         EntityMatchingIterMut::<'a, G>::new(&self.sorted_mappings, &mut self.archetypes)
     }
 
-    pub fn iter_filtered_components_matching<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool>(
+    pub fn iter_filtered_components_matching<
+        'a,
+        G: ComponentGroup<'a>,
+        F: Fn(&ArchetypeDescriptor) -> bool,
+    >(
         &'a self,
         filter_closure: F,
     ) -> impl Iterator<Item = <G as ComponentGroup<'a>>::SliceRefTuple> {
         FilterMatchingIter::<'a, G, F>::new(&self.sorted_mappings, &self.archetypes, filter_closure)
     }
 
-    pub fn iter_filtered_components_matching_mut<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool>(
+    pub fn iter_filtered_components_matching_mut<
+        'a,
+        G: ComponentGroup<'a>,
+        F: Fn(&ArchetypeDescriptor) -> bool,
+    >(
         &'a mut self,
         filter_closure: F,
     ) -> impl Iterator<Item = <G as ComponentGroup<'a>>::SliceMutRefTuple> {
-        FilterMatchingIterMut::<'a, G, F>::new(&self.sorted_mappings, &mut self.archetypes, filter_closure)
+        FilterMatchingIterMut::<'a, G, F>::new(
+            &self.sorted_mappings,
+            &mut self.archetypes,
+            filter_closure,
+        )
     }
 
-    pub fn iter_filtered_entity_components_matching<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool>(
+    pub fn iter_filtered_entity_components_matching<
+        'a,
+        G: ComponentGroup<'a>,
+        F: Fn(&ArchetypeDescriptor) -> bool,
+    >(
         &'a self,
         filter_closure: F,
     ) -> impl Iterator<Item = (&'a [Entity], <G as ComponentGroup<'a>>::SliceRefTuple)> {
-        FilterEntityMatchingIter::<'a, G, F>::new(&self.sorted_mappings, &self.archetypes, filter_closure)
+        FilterEntityMatchingIter::<'a, G, F>::new(
+            &self.sorted_mappings,
+            &self.archetypes,
+            filter_closure,
+        )
     }
 
-    pub fn iter_filtered_entity_components_matching_mut<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool>(
+    pub fn iter_filtered_entity_components_matching_mut<
+        'a,
+        G: ComponentGroup<'a>,
+        F: Fn(&ArchetypeDescriptor) -> bool,
+    >(
         &'a mut self,
         filter_closure: F,
     ) -> impl Iterator<Item = (&'a [Entity], <G as ComponentGroup<'a>>::SliceMutRefTuple)> {
-        FilterEntityMatchingIterMut::<'a, G, F>::new(&self.sorted_mappings, &mut self.archetypes, filter_closure)
+        FilterEntityMatchingIterMut::<'a, G, F>::new(
+            &self.sorted_mappings,
+            &mut self.archetypes,
+            filter_closure,
+        )
     }
 }
 
