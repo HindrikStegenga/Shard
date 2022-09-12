@@ -5,18 +5,10 @@ use crate::descriptors::component_group::ComponentGroup;
 use crate::{entity_registry::registry::EntityRegistry, Component, Entity};
 
 /// The primary construct in the *Shard* Entity Component System (ECS).
+#[derive(Default)]
 pub struct Registry {
     entities: EntityRegistry,
     archetypes: ArchetypeRegistry,
-}
-
-impl Default for Registry {
-    fn default() -> Self {
-        Self {
-            entities: EntityRegistry::default(),
-            archetypes: ArchetypeRegistry::default(),
-        }
-    }
 }
 
 impl Registry {
@@ -350,7 +342,7 @@ impl Registry {
 
 impl Registry {
     /// Returns an iterator which iterates over all entities in the registry.
-    pub fn iter_entities<'registry>(&'registry self) -> impl Iterator<Item = Entity> + 'registry {
+    pub fn iter_entities(&self) -> impl Iterator<Item = Entity> + '_ {
         self.entities.iter()
     }
 

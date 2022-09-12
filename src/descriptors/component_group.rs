@@ -21,7 +21,7 @@ macro_rules! tuple_index {
 }
 
 /// Represents a group of components. Used for specifying which component types should be matched in query's.
-pub trait ComponentGroup<'c>: private::SealedComponentGroup + Sized + 'static {
+pub trait ComponentGroup<'c>: SealedComponentGroup + Sized + 'static {
     type RefTuple: 'c;
     type MutRefTuple: 'c;
     type SliceRefTuple: 'c;
@@ -332,13 +332,13 @@ mod test {
             pointers[2] = slice_c.as_mut_ptr() as *mut u8;
 
             let slices: (&[A], &[B], &[C]) =
-                <(A, B, C) as ComponentGroup<'_>>::slice_unchecked(&mut pointers, slice_a.len());
+                <(A, B, C) as ComponentGroup<'_>>::slice_unchecked(&pointers, slice_a.len());
             assert_eq!(slices.0.as_ptr() as *mut u8, pointers[0]);
             assert_eq!(slices.1.as_ptr() as *mut u8, pointers[1]);
             assert_eq!(slices.2.as_ptr() as *mut u8, pointers[2]);
 
             let slices: (&[B], &[C], &[A]) =
-                <(B, C, A) as ComponentGroup<'_>>::slice_unchecked(&mut pointers, slice_a.len());
+                <(B, C, A) as ComponentGroup<'_>>::slice_unchecked(&pointers, slice_a.len());
             assert_eq!(slices.0.as_ptr() as *mut u8, pointers[1]);
             assert_eq!(slices.1.as_ptr() as *mut u8, pointers[2]);
             assert_eq!(slices.2.as_ptr() as *mut u8, pointers[0]);
@@ -511,7 +511,7 @@ mod private {
 
     pub trait SealedComponentGroup {}
 
-    impl<'s, T> SealedComponentGroup for T where T: Component {}
+    impl<T> SealedComponentGroup for T where T: Component {}
 
     macro_rules! impl_sealed_component_tuples {
         ($($ty:ident)*) => {}; //base case
@@ -568,7 +568,7 @@ mod tests {
         extern crate std;
 
         assert!(<Position as ComponentGroup>::DESCRIPTOR.is_valid());
-        assert!(<(Position, Position) as ComponentGroup>::DESCRIPTOR.is_valid() == false);
+        assert!(!<(Position, Position) as ComponentGroup>::DESCRIPTOR.is_valid());
         assert!(<(Position, Rotation) as ComponentGroup>::DESCRIPTOR.is_valid());
     }
 }

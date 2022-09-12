@@ -11,9 +11,9 @@ impl From<u16> for ComponentTypeId {
     }
 }
 
-impl Into<ArchetypeId> for ComponentTypeId {
-    fn into(self) -> ArchetypeId {
-        ArchetypeId::from_u32(self.0 as u32)
+impl From<ComponentTypeId> for ArchetypeId {
+    fn from(value: ComponentTypeId) -> Self {
+        ArchetypeId::from_u32(value.0 as u32)
     }
 }
 

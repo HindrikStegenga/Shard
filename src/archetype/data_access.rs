@@ -333,12 +333,12 @@ impl Archetype {
     /// - [`index`] must be smaller than the amount of entities in the archetype.
     pub unsafe fn swap_to_last_unchecked(&mut self, index: u32) -> bool {
         debug_assert!(index < self.len());
-        return if index == self.len() - 1 {
+        if index == self.len() - 1 {
             false
         } else {
             self.swap_entities(index, self.len() - 1);
             true
-        };
+        }
     }
 
     /// Swaps the entity at [`index`] and the last entity and returns the now-last entity.
@@ -469,7 +469,7 @@ impl Archetype {
             .iter_mut()
             .enumerate()
         {
-            if *pointer == core::ptr::null_mut() {
+            if pointer.is_null() {
                 return;
             }
             let component_type = &self.descriptor.components()[index];

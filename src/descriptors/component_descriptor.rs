@@ -29,7 +29,7 @@ macro_rules! copy_component_descriptor_from_to {
 }
 
 /// Groups special function pointers used for memory operations on component instances.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ComponentDescriptorFnPointers {
     pub drop_handler: unsafe fn(ptr: *mut u8, len: usize),
 }
@@ -132,6 +132,8 @@ impl ComponentDescriptor {
     }
 
     /// Do not use this manually. It wraps a type erased drop handler.
+    /// # Safety
+    /// The pointer must be properly aligned to an instance of C and the len must be valid for the slice.
     pub unsafe fn drop_handler_wrapper<C: Component>(ptr: *mut u8, len: usize) {
         let s = core::slice::from_raw_parts_mut(ptr as *mut ManuallyDrop<C>, len);
         s.iter_mut().for_each(|e| ManuallyDrop::drop(e))

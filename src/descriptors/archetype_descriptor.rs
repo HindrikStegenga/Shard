@@ -90,7 +90,7 @@ impl ArchetypeDescriptor {
             }
             return false;
         }
-        return true;
+        true
     }
 
     /// Returns whether the descriptor provided is excluded from self. (i.e. subset exclusion)
@@ -111,7 +111,7 @@ impl ArchetypeDescriptor {
             }
             i += 1;
         }
-        return true;
+        true
     }
 
     /// Returns a new archetype with the given component type added to it.
@@ -174,13 +174,10 @@ impl ArchetypeDescriptor {
 
     /// Returns whether the archetype descriptor has a given component type.
     pub fn has_component<C: Component>(&self) -> bool {
-        return match self
+        return self
             .components()
             .binary_search_by_key(&C::ID, |e| e.component_type_id)
-        {
-            Ok(_) => true,
-            Err(_) => false,
-        };
+            .is_ok();
     }
 
     /// Get a the archetype descriptor's archetype id.
@@ -196,6 +193,8 @@ impl ArchetypeDescriptor {
     /// Get a reference to the archetype descriptor's components.
     /// This version is const but unsafe, as length is NOT accounted for.
     /// Therefore any descriptor past the len is considered invalid or garbage data.
+    /// # Safety
+    /// Data outside of the valid component descriptor range must not be modified.
     pub const unsafe fn components_unchecked(
         &self,
     ) -> &[ComponentDescriptor; MAX_COMPONENTS_PER_ENTITY] {
@@ -218,18 +217,18 @@ mod tests {
     #[test]
     fn test_archetype_descriptor_add_remove() {
         let descriptor: &ArchetypeDescriptor = <(A, B) as ComponentGroup>::DESCRIPTOR.archetype();
-        assert_eq!(descriptor.has_component::<A>(), true);
-        assert_eq!(descriptor.has_component::<B>(), true);
+        assert!(descriptor.has_component::<A>());
+        assert!(descriptor.has_component::<B>());
         let descriptor = descriptor
             .add_component(&<C as Component>::DESCRIPTOR)
             .unwrap();
-        assert_eq!(descriptor.has_component::<C>(), true);
-        assert_eq!(descriptor.has_component::<A>(), true);
-        assert_eq!(descriptor.has_component::<B>(), true);
+        assert!(descriptor.has_component::<C>());
+        assert!(descriptor.has_component::<A>());
+        assert!(descriptor.has_component::<B>());
         let descriptor = descriptor.remove_component(B::ID).unwrap();
-        assert_eq!(descriptor.has_component::<B>(), false);
-        assert_eq!(descriptor.has_component::<A>(), true);
-        assert_eq!(descriptor.has_component::<C>(), true);
+        assert!(!descriptor.has_component::<B>());
+        assert!(descriptor.has_component::<A>());
+        assert!(descriptor.has_component::<C>());
         assert_eq!(descriptor.len(), 2);
     }
 

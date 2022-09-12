@@ -44,7 +44,7 @@ impl EntityRegistry {
     /// Returns true if there is space left to store a new entity record.
     #[allow(dead_code)]
     pub fn can_create_new_entity(&self) -> bool {
-        !(self.entities.len() >= MAX_ENTITY_HANDLE_VALUE as usize)
+        self.entities.len() < MAX_ENTITY_HANDLE_VALUE as usize
     }
 
     /// Registers a new entity into the registry.
@@ -53,7 +53,7 @@ impl EntityRegistry {
             return None;
         }
 
-        return if self.next_free_slot == INVALID_ENTITY_HANDLE_VALUE {
+        if self.next_free_slot == INVALID_ENTITY_HANDLE_VALUE {
             // Linked list of free slots is empty, we need to allocate a new entity.
             self.entities.push(EntityEntry::default());
             let idx = self.entities.len() - 1;
@@ -69,7 +69,7 @@ impl EntityRegistry {
                 entity: unsafe { Entity::new_unchecked(old_slot_index, entry.version()) },
                 entry,
             })
-        };
+        }
     }
 
     /// Registers a new entity into the registry.
@@ -86,7 +86,7 @@ impl EntityRegistry {
             return None;
         }
 
-        return if self.next_free_slot == INVALID_ENTITY_HANDLE_VALUE {
+        if self.next_free_slot == INVALID_ENTITY_HANDLE_VALUE {
             // Linked list of free slots is empty, we need to allocate a new entity.
             let mut entry = EntityEntry::default();
             entry.set_archetype_index(archetype_index);
@@ -100,7 +100,7 @@ impl EntityRegistry {
             entry.set_index_in_archetype(index_in_archetype);
             entry.set_archetype_index(archetype_index);
             Some(unsafe { Entity::new_unchecked(old_slot_index, entry.version()) })
-        };
+        }
     }
 
     pub fn get_entity_entry(&self, entity: Entity) -> Option<&EntityEntry> {
@@ -138,10 +138,10 @@ impl EntityRegistry {
         entry.set_version(entry.version().wrapping_add(1));
         entry.set_index_in_archetype(entity.index());
         self.next_free_slot = entity.index();
-        return true;
+        true
     }
 
-    pub fn iter<'a>(&'a self) -> impl Iterator<Item = Entity> + 'a {
+    pub fn iter(&self) -> impl Iterator<Item = Entity> + '_ {
         EntityIter::new(&self.entities)
     }
 }

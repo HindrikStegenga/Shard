@@ -74,7 +74,7 @@ impl ArchetypeRegistry {
         if len > MAX_COMPONENTS_PER_ENTITY || !archetype_descriptor.is_valid() {
             return None;
         }
-        return match self.sorted_mappings[len - 1]
+        match self.sorted_mappings[len - 1]
             .binary_search_by_key(&archetype_descriptor.archetype_id(), |e| e.id)
         {
             Ok(found_index) => Some(
@@ -82,7 +82,7 @@ impl ArchetypeRegistry {
                     [self.sorted_mappings[len - 1][found_index].archetype_index as usize],
             ),
             Err(_) => None,
-        };
+        }
     }
 
     #[allow(dead_code)]
@@ -94,7 +94,7 @@ impl ArchetypeRegistry {
         if len > MAX_COMPONENTS_PER_ENTITY || !archetype_descriptor.is_valid() {
             return None;
         }
-        return match self.sorted_mappings[len - 1]
+        match self.sorted_mappings[len - 1]
             .binary_search_by_key(&archetype_descriptor.archetype_id(), |e| e.id)
         {
             Ok(found_index) => Some(
@@ -102,7 +102,7 @@ impl ArchetypeRegistry {
                     [self.sorted_mappings[len - 1][found_index].archetype_index as usize],
             ),
             Err(_) => None,
-        };
+        }
     }
 
     /// Returns mutable reference to source archetype and finds or creates a new archetype by adding
@@ -200,10 +200,16 @@ impl ArchetypeRegistry {
         };
     }
 
+    /// Returns an archetype reference for the given index.
+    /// # Safety
+    /// Index must not be out of bounds.
     pub unsafe fn get_unchecked(&self, index: u16) -> &Archetype {
         self.archetypes.get_unchecked(index as usize)
     }
 
+    /// Returns a mutable archetype reference for the given index.
+    /// # Safety
+    /// Index must not be out of bounds.
     pub unsafe fn get_unchecked_mut(&mut self, index: u16) -> &mut Archetype {
         self.archetypes.get_unchecked_mut(index as usize)
     }

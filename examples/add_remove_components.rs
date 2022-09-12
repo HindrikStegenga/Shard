@@ -38,7 +38,7 @@ fn main() {
     let mut registry = Registry::default();
     // Entities cannot exist without them having components.
     // As such, you create an entity by giving it an initial set of components.
-    let result = registry.create_entity(position.clone());
+    let result = registry.create_entity(position);
     // Keep in mind, it returns a Result<Entity,G>, as it could fail, returning the component instance.
     let entity = result.unwrap();
 

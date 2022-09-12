@@ -66,7 +66,7 @@ impl ComponentGroupDescriptor {
         }
 
         let (unsorted_to_sorted, sorted_to_unsorted) =
-            ComponentGroupDescriptor::compute_sort_mappings(&descriptors, &sorted_descriptors);
+            ComponentGroupDescriptor::compute_sort_mappings(descriptors, &sorted_descriptors);
 
         let value = Self {
             archetype: ArchetypeDescriptor::new(id, N as u8, sorted_descriptors),
@@ -83,7 +83,7 @@ impl ComponentGroupDescriptor {
         descriptors: &[ComponentDescriptor; N],
     ) -> bool {
         // Length may not be zero or larger than max components.
-        if descriptors.len() == 0 || descriptors.len() > MAX_COMPONENTS_PER_ENTITY {
+        if descriptors.is_empty() || descriptors.len() > MAX_COMPONENTS_PER_ENTITY {
             return false;
         }
         // Duplicates MUST not exist.

@@ -19,6 +19,9 @@ impl Entity {
 
     /// Constructs a new Entity from a raw u32.
     /// The higher/leftmost 24 bits as index, the lower/rightmost 8 bits are used as version.
+    /// # Safety
+    /// Keep in mind the bits are interpreted as defined by the entity handle layout.
+    /// These must be respected by the provided integer value.
     pub const unsafe fn from_raw(raw: u32) -> Entity {
         Self { handle: raw }
     }

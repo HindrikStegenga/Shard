@@ -6,15 +6,9 @@ use crate::constants::INVALID_ARCHETYPE_INDEX;
 /// Invalid:    |version: u8|next_fr_slt: u24|INV_ARCH: u16|
 ///             |     0     | 1    2     3   | 4       5   |
 #[repr(C, align(2))]
-#[derive(Clone, Debug)]
+#[derive(Default, Clone, Debug)]
 pub struct EntityEntry {
     values: [u8; 6],
-}
-
-impl Default for EntityEntry {
-    fn default() -> Self {
-        Self { values: [0; 6] }
-    }
 }
 
 impl EntityEntry {

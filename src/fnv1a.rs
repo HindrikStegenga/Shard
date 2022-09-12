@@ -56,7 +56,7 @@ pub const fn fnv1a_hash_32(bytes: &[u8], limit: Option<usize>) -> u32 {
     hash
 }
 
-/// Computes 32-bits fnv1a hash and xors higher and lower 16-bits.
+/// Computes 32-bits fnv1a hash and xor higher and lower 16-bits.
 /// Up to limit if provided, otherwise slice length.
 /// If limit is zero or exceeds slice length, slice length is used instead.
 #[allow(dead_code)]

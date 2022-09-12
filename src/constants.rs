@@ -1,4 +1,4 @@
-/// Used amount of bits in the entityhandle for storing the index.
+/// Used amount of bits in the entity handle for storing the index.
 /// Is defined to be 24 bits. Thus, yielding 2^24 - 1 = 16_777_215 different indices/entities.
 pub const ENTITY_HANDLE_BITS: u8 = 24;
 
@@ -6,7 +6,7 @@ pub const ENTITY_HANDLE_BITS: u8 = 24;
 pub const MAX_ENTITY_HANDLE_VALUE: u32 = 16_777_215;
 
 /// Value indicating that an entity handle is invalid.
-/// The null entity is the entity having the handle value being this value, and verison is max version value.
+/// The null entity is the entity having the handle value being this value, and version is max version value.
 /// This corresponds to 2^24.
 pub const INVALID_ENTITY_HANDLE_VALUE: u32 = 16_777_216;
 
