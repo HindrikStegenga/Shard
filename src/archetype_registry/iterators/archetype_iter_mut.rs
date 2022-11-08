@@ -4,7 +4,7 @@ use alloc::vec::*;
 use core::iter::FusedIterator;
 use core::marker::PhantomData;
 
-pub(crate) struct ArchetypeIterMut<'a, G: ComponentGroup<'a>> {
+pub(crate) struct ArchetypeIterMut<'a, G: ComponentGroup> {
     sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
     archetypes: &'a mut [Archetype],
     current_level: u8,
@@ -12,7 +12,7 @@ pub(crate) struct ArchetypeIterMut<'a, G: ComponentGroup<'a>> {
     _phantom: PhantomData<fn(G)>,
 }
 
-impl<'a, G: ComponentGroup<'a>> ArchetypeIterMut<'a, G> {
+impl<'a, G: ComponentGroup> ArchetypeIterMut<'a, G> {
     pub(in crate::archetype_registry) fn new(
         sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
         archetypes: &'a mut [Archetype],
@@ -27,7 +27,7 @@ impl<'a, G: ComponentGroup<'a>> ArchetypeIterMut<'a, G> {
     }
 }
 
-impl<'a, G: ComponentGroup<'a>> Iterator for ArchetypeIterMut<'a, G> {
+impl<'a, G: ComponentGroup> Iterator for ArchetypeIterMut<'a, G> {
     type Item = &'a mut Archetype;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -63,4 +63,4 @@ impl<'a, G: ComponentGroup<'a>> Iterator for ArchetypeIterMut<'a, G> {
     }
 }
 
-impl<'a, G: ComponentGroup<'a>> FusedIterator for ArchetypeIterMut<'a, G> {}
+impl<'a, G: ComponentGroup> FusedIterator for ArchetypeIterMut<'a, G> {}

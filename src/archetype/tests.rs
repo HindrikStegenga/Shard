@@ -17,7 +17,7 @@ fn test_archetype_constructors() {
 #[test]
 fn test_archetype_slices() {
     unsafe {
-        let descriptor = <(A, B, C) as ComponentGroup<'_>>::DESCRIPTOR.archetype();
+        let descriptor = <(A, B, C) as ComponentGroup>::DESCRIPTOR.archetype();
 
         let mut archetype = Archetype::new(descriptor);
         let meta = Entity::INVALID;
@@ -57,7 +57,7 @@ fn test_archetype_slices() {
 #[test]
 fn test_archetype_get_components() {
     unsafe {
-        let descriptor = <(A, B, C) as ComponentGroup<'_>>::DESCRIPTOR.archetype();
+        let descriptor = <(A, B, C) as ComponentGroup>::DESCRIPTOR.archetype();
 
         let mut archetype = Archetype::new(descriptor);
         let meta = Entity::INVALID;
@@ -74,7 +74,7 @@ fn test_archetype_get_components() {
 #[test]
 fn test_archetype_swap_entities() {
     unsafe {
-        let descriptor = <(A, B) as ComponentGroup<'_>>::DESCRIPTOR.archetype();
+        let descriptor = <(A, B) as ComponentGroup>::DESCRIPTOR.archetype();
 
         let mut archetype = Archetype::new(descriptor);
         let meta1 = Entity::from_raw(1);
@@ -165,7 +165,7 @@ fn test_archetype_swap_entities() {
 #[test]
 fn test_archetype_read_components() {
     unsafe {
-        let descriptor = <(A, B) as ComponentGroup<'_>>::DESCRIPTOR.archetype();
+        let descriptor = <(A, B) as ComponentGroup>::DESCRIPTOR.archetype();
 
         let mut archetype = Archetype::new(descriptor);
         let meta = Entity::INVALID;
@@ -180,7 +180,7 @@ fn test_archetype_read_components() {
             (B::default(), A::default())
         );
 
-        let descriptor = <(A, B, C) as ComponentGroup<'_>>::DESCRIPTOR.archetype();
+        let descriptor = <(A, B, C) as ComponentGroup>::DESCRIPTOR.archetype();
 
         let mut archetype = Archetype::new(descriptor);
         let meta = Entity::INVALID;

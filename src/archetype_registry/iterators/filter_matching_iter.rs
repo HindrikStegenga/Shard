@@ -5,12 +5,12 @@ use crate::Entity;
 use alloc::vec::*;
 use core::iter::FusedIterator;
 
-pub(crate) struct FilterMatchingIter<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool>
+pub(crate) struct FilterMatchingIter<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool>
 {
     inner_iterator: FilterArchetypeIter<'a, G, F>,
 }
 
-impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> FilterMatchingIter<'a, G, F> {
+impl<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool> FilterMatchingIter<'a, G, F> {
     pub(in crate::archetype_registry) fn new(
         sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
         archetypes: &'a [Archetype],
@@ -22,10 +22,10 @@ impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> FilterMatch
     }
 }
 
-impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> Iterator
+impl<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool> Iterator
     for FilterMatchingIter<'a, G, F>
 {
-    type Item = G::SliceRefTuple;
+    type Item = G::SliceRefTuple<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let archetype = self.inner_iterator.next()?;
@@ -33,20 +33,20 @@ impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> Iterator
     }
 }
 
-impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> FusedIterator
+impl<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool> FusedIterator
     for FilterMatchingIter<'a, G, F>
 {
 }
 
 pub(crate) struct FilterEntityMatchingIter<
     'a,
-    G: ComponentGroup<'a>,
+    G: ComponentGroup,
     F: Fn(&ArchetypeDescriptor) -> bool,
 > {
     inner_iterator: FilterArchetypeIter<'a, G, F>,
 }
 
-impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool>
+impl<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool>
     FilterEntityMatchingIter<'a, G, F>
 {
     pub(in crate::archetype_registry) fn new(
@@ -60,10 +60,10 @@ impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool>
     }
 }
 
-impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> Iterator
+impl<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool> Iterator
     for FilterEntityMatchingIter<'a, G, F>
 {
-    type Item = (&'a [Entity], G::SliceRefTuple);
+    type Item = (&'a [Entity], G::SliceRefTuple<'a>);
 
     fn next(&mut self) -> Option<Self::Item> {
         let archetype = self.inner_iterator.next()?;
@@ -71,7 +71,7 @@ impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> Iterator
     }
 }
 
-impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> FusedIterator
+impl<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool> FusedIterator
     for FilterEntityMatchingIter<'a, G, F>
 {
 }

@@ -7,13 +7,13 @@ use core::iter::FusedIterator;
 
 pub(crate) struct FilterMatchingIterMut<
     'a,
-    G: ComponentGroup<'a>,
+    G: ComponentGroup,
     F: Fn(&ArchetypeDescriptor) -> bool,
 > {
     inner_iterator: FilterArchetypeIterMut<'a, G, F>,
 }
 
-impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool>
+impl<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool>
     FilterMatchingIterMut<'a, G, F>
 {
     pub(in crate::archetype_registry) fn new(
@@ -31,10 +31,10 @@ impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool>
     }
 }
 
-impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> Iterator
+impl<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool> Iterator
     for FilterMatchingIterMut<'a, G, F>
 {
-    type Item = G::SliceMutRefTuple;
+    type Item = G::SliceMutRefTuple<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let archetype = self.inner_iterator.next()?;
@@ -42,20 +42,20 @@ impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> Iterator
     }
 }
 
-impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> FusedIterator
+impl<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool> FusedIterator
     for FilterMatchingIterMut<'a, G, F>
 {
 }
 
 pub(crate) struct FilterEntityMatchingIterMut<
     'a,
-    G: ComponentGroup<'a>,
+    G: ComponentGroup,
     F: Fn(&ArchetypeDescriptor) -> bool,
 > {
     inner_iterator: FilterArchetypeIterMut<'a, G, F>,
 }
 
-impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool>
+impl<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool>
     FilterEntityMatchingIterMut<'a, G, F>
 {
     pub(in crate::archetype_registry) fn new(
@@ -73,10 +73,10 @@ impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool>
     }
 }
 
-impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> Iterator
+impl<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool> Iterator
     for FilterEntityMatchingIterMut<'a, G, F>
 {
-    type Item = (&'a [Entity], G::SliceMutRefTuple);
+    type Item = (&'a [Entity], G::SliceMutRefTuple<'a>);
 
     fn next(&mut self) -> Option<Self::Item> {
         let archetype = self.inner_iterator.next()?;
@@ -84,7 +84,7 @@ impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> Iterator
     }
 }
 
-impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> FusedIterator
+impl<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool> FusedIterator
     for FilterEntityMatchingIterMut<'a, G, F>
 {
 }

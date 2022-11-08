@@ -5,11 +5,11 @@ use crate::Entity;
 use alloc::vec::*;
 use core::iter::FusedIterator;
 
-pub(crate) struct MatchingIterMut<'a, G: ComponentGroup<'a>> {
+pub(crate) struct MatchingIterMut<'a, G: ComponentGroup> {
     inner_iterator: ArchetypeIterMut<'a, G>,
 }
 
-impl<'a, G: ComponentGroup<'a>> MatchingIterMut<'a, G> {
+impl<'a, G: ComponentGroup> MatchingIterMut<'a, G> {
     pub(in crate::archetype_registry) fn new(
         sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
         archetypes: &'a mut [Archetype],
@@ -20,8 +20,8 @@ impl<'a, G: ComponentGroup<'a>> MatchingIterMut<'a, G> {
     }
 }
 
-impl<'a, G: ComponentGroup<'a>> Iterator for MatchingIterMut<'a, G> {
-    type Item = G::SliceMutRefTuple;
+impl<'a, G: ComponentGroup> Iterator for MatchingIterMut<'a, G> {
+    type Item = G::SliceMutRefTuple<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let archetype = self.inner_iterator.next()?;
@@ -29,13 +29,13 @@ impl<'a, G: ComponentGroup<'a>> Iterator for MatchingIterMut<'a, G> {
     }
 }
 
-impl<'a, G: ComponentGroup<'a>> FusedIterator for MatchingIterMut<'a, G> {}
+impl<'a, G: ComponentGroup> FusedIterator for MatchingIterMut<'a, G> {}
 
-pub(crate) struct EntityMatchingIterMut<'a, G: ComponentGroup<'a>> {
+pub(crate) struct EntityMatchingIterMut<'a, G: ComponentGroup> {
     inner_iterator: ArchetypeIterMut<'a, G>,
 }
 
-impl<'a, G: ComponentGroup<'a>> EntityMatchingIterMut<'a, G> {
+impl<'a, G: ComponentGroup> EntityMatchingIterMut<'a, G> {
     pub(in crate::archetype_registry) fn new(
         sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
         archetypes: &'a mut [Archetype],
@@ -46,8 +46,8 @@ impl<'a, G: ComponentGroup<'a>> EntityMatchingIterMut<'a, G> {
     }
 }
 
-impl<'a, G: ComponentGroup<'a>> Iterator for EntityMatchingIterMut<'a, G> {
-    type Item = (&'a [Entity], G::SliceMutRefTuple);
+impl<'a, G: ComponentGroup> Iterator for EntityMatchingIterMut<'a, G> {
+    type Item = (&'a [Entity], G::SliceMutRefTuple<'a>);
 
     fn next(&mut self) -> Option<Self::Item> {
         let archetype = self.inner_iterator.next()?;
@@ -55,4 +55,4 @@ impl<'a, G: ComponentGroup<'a>> Iterator for EntityMatchingIterMut<'a, G> {
     }
 }
 
-impl<'a, G: ComponentGroup<'a>> FusedIterator for EntityMatchingIterMut<'a, G> {}
+impl<'a, G: ComponentGroup> FusedIterator for EntityMatchingIterMut<'a, G> {}

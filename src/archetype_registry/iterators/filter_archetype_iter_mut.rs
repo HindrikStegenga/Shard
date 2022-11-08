@@ -6,7 +6,7 @@ use core::marker::PhantomData;
 
 pub(crate) struct FilterArchetypeIterMut<
     'a,
-    G: ComponentGroup<'a>,
+    G: ComponentGroup,
     F: Fn(&ArchetypeDescriptor) -> bool,
 > {
     sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
@@ -17,7 +17,7 @@ pub(crate) struct FilterArchetypeIterMut<
     _phantom: PhantomData<fn(G)>,
 }
 
-impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool>
+impl<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool>
     FilterArchetypeIterMut<'a, G, F>
 {
     pub(in crate::archetype_registry) fn new(
@@ -36,7 +36,7 @@ impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool>
     }
 }
 
-impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> Iterator
+impl<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool> Iterator
     for FilterArchetypeIterMut<'a, G, F>
 {
     type Item = &'a mut Archetype;
@@ -75,7 +75,7 @@ impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> Iterator
     }
 }
 
-impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> FusedIterator
+impl<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool> FusedIterator
     for FilterArchetypeIterMut<'a, G, F>
 {
 }

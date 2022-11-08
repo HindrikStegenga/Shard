@@ -21,11 +21,15 @@ macro_rules! tuple_index {
 }
 
 /// Represents a group of components. Used for specifying which component types should be matched in query's.
-pub trait ComponentGroup<'c>: SealedComponentGroup + Sized + 'static {
-    type RefTuple: 'c;
-    type MutRefTuple: 'c;
-    type SliceRefTuple: 'c;
-    type SliceMutRefTuple: 'c;
+pub trait ComponentGroup: SealedComponentGroup + Sized + 'static {
+    type RefTuple<'c>: 'c
+    where
+        Self: 'c;
+    type MutRefTuple<'c>: 'c
+    where
+        Self: 'c;
+    type SliceRefTuple<'c>: 'c where Self : 'c;
+    type SliceMutRefTuple<'c>: 'c where Self : 'c;
 
     /// The descriptor which exactly specifies all components of the component group.
     const DESCRIPTOR: ComponentGroupDescriptor;
@@ -37,44 +41,44 @@ pub trait ComponentGroup<'c>: SealedComponentGroup + Sized + 'static {
     unsafe fn read_from_sorted_pointers(pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY]) -> Self;
 
     /// Returns a reference tuple of component types given an array of sorted pointers.
-    unsafe fn pointers_as_ref_tuple(
-        sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
-    ) -> Self::RefTuple;
+    unsafe fn pointers_as_ref_tuple<'a, 'b>(
+        sorted_pointers: &'a [*mut u8; MAX_COMPONENTS_PER_ENTITY],
+    ) -> Self::RefTuple<'b>;
 
     /// Returns a mutable reference tuple of component types given an array of sorted pointers.
-    unsafe fn pointers_as_mut_ref_tuple(
-        sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
-    ) -> Self::MutRefTuple;
+    unsafe fn pointers_as_mut_ref_tuple<'a, 'b>(
+        sorted_pointers: &'a [*mut u8; MAX_COMPONENTS_PER_ENTITY],
+    ) -> Self::MutRefTuple<'b>;
 
     /// Returns a tuple of slices extracted from the given pointers.
     /// # Safety:
     /// - The pointers must be sorted.
-    unsafe fn slice_unchecked(
-        sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
+    unsafe fn slice_unchecked<'a, 'b>(
+        sorted_pointers: &'a [*mut u8; MAX_COMPONENTS_PER_ENTITY],
         len: usize,
-    ) -> Self::SliceRefTuple;
+    ) -> Self::SliceRefTuple<'b>;
 
     /// Returns a tuple of mutable slices extracted from the given pointers.
     /// # Safety:
     /// - The pointers must be sorted.
-    unsafe fn slice_unchecked_mut(
-        sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
+    unsafe fn slice_unchecked_mut<'a, 'b>(
+        sorted_pointers: &'a [*mut u8; MAX_COMPONENTS_PER_ENTITY],
         len: usize,
-    ) -> Self::SliceMutRefTuple;
+    ) -> Self::SliceMutRefTuple<'b>;
 
     /// Returns an tuple of empty slices.
-    fn empty_slice() -> Self::SliceRefTuple;
+    fn empty_slice<'a>() -> Self::SliceRefTuple<'a>;
 
     /// Returns an tuple of empty mutable slices.
-    fn empty_slice_mut() -> Self::SliceMutRefTuple;
+    fn empty_slice_mut<'a>() -> Self::SliceMutRefTuple<'a>;
 }
 
-impl<'c, T: Component + SealedComponentGroup> ComponentGroup<'c> for T {
-    type RefTuple = &'c T;
-    type MutRefTuple = &'c mut T;
+impl<T: Component + SealedComponentGroup> ComponentGroup for T {
+    type RefTuple<'c> = &'c T;
+    type MutRefTuple<'c> = &'c mut T;
 
-    type SliceRefTuple = &'c [T];
-    type SliceMutRefTuple = &'c mut [T];
+    type SliceRefTuple<'c> = &'c [T];
+    type SliceMutRefTuple<'c> = &'c mut [T];
 
     const DESCRIPTOR: ComponentGroupDescriptor =
         ComponentGroupDescriptor::new(&[define_component_descriptor!(T)]);
@@ -87,57 +91,57 @@ impl<'c, T: Component + SealedComponentGroup> ComponentGroup<'c> for T {
         core::ptr::read(pointers[0] as *mut T)
     }
 
-    unsafe fn pointers_as_ref_tuple(
-        sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
-    ) -> Self::RefTuple {
+    unsafe fn pointers_as_ref_tuple<'a, 'b>(
+        sorted_pointers: &'a [*mut u8; MAX_COMPONENTS_PER_ENTITY],
+    ) -> Self::RefTuple<'b> {
         &*(sorted_pointers[0] as *mut T)
     }
 
-    unsafe fn pointers_as_mut_ref_tuple(
-        sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
-    ) -> Self::MutRefTuple {
+    unsafe fn pointers_as_mut_ref_tuple<'a, 'b>(
+        sorted_pointers: &'a [*mut u8; MAX_COMPONENTS_PER_ENTITY],
+    ) -> Self::MutRefTuple<'b> {
         &mut *(sorted_pointers[0] as *mut T)
     }
 
-    unsafe fn slice_unchecked(
-        sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
+    unsafe fn slice_unchecked<'a, 'b>(
+        sorted_pointers: &'a [*mut u8; MAX_COMPONENTS_PER_ENTITY],
         len: usize,
-    ) -> Self::SliceRefTuple {
+    ) -> Self::SliceRefTuple<'b> {
         core::slice::from_raw_parts(sorted_pointers[0] as *const T, len)
     }
 
-    unsafe fn slice_unchecked_mut(
-        sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
+    unsafe fn slice_unchecked_mut<'a, 'b>(
+        sorted_pointers: &'a [*mut u8; MAX_COMPONENTS_PER_ENTITY],
         len: usize,
-    ) -> Self::SliceMutRefTuple {
+    ) -> Self::SliceMutRefTuple<'b> {
         core::slice::from_raw_parts_mut(sorted_pointers[0] as *mut T, len)
     }
 
-    fn empty_slice() -> Self::SliceRefTuple {
+    fn empty_slice<'a>() -> Self::SliceRefTuple<'a> {
         &[]
     }
 
-    fn empty_slice_mut() -> Self::SliceMutRefTuple {
+    fn empty_slice_mut<'a>() -> Self::SliceMutRefTuple<'a> {
         &mut []
     }
 }
 
 macro_rules! impl_component_tuple {
     ($len:expr, $(($elem:ident, $elem_idx:tt)), *) => {
-        impl<'s, $($elem),*> ComponentGroup<'s> for ($($elem), *)
+        impl<$($elem),*> ComponentGroup for ($($elem), *)
         where $( $elem : Component + SealedComponentGroup ),*, Self : SealedComponentGroup
         {
-            type RefTuple = ($(&'s $elem),*);
-            type MutRefTuple = ($(&'s mut $elem),*);
+            type RefTuple<'s> = ($(&'s $elem),*);
+            type MutRefTuple<'s> = ($(&'s mut $elem),*);
 
-            type SliceRefTuple = ($(&'s [$elem]),*);
-            type SliceMutRefTuple = ($(&'s mut [$elem]),*);
+            type SliceRefTuple<'s> = ($(&'s [$elem]),*);
+            type SliceMutRefTuple<'s> = ($(&'s mut [$elem]),*);
 
-            fn empty_slice() -> Self::SliceRefTuple {
+            fn empty_slice<'a>() -> Self::SliceRefTuple<'a> {
                 ($(&[] as &[$elem]), *)
             }
 
-            fn empty_slice_mut() -> Self::SliceMutRefTuple {
+            fn empty_slice_mut<'a>() -> Self::SliceMutRefTuple<'a> {
                 ($(&mut [] as &mut [$elem]), *)
             }
 
@@ -156,35 +160,35 @@ macro_rules! impl_component_tuple {
                 ),*)
             }
 
-            unsafe fn pointers_as_ref_tuple(
-                sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
-            ) -> Self::RefTuple {
+            unsafe fn pointers_as_ref_tuple<'a, 'b>(
+                sorted_pointers: &'a [*mut u8; MAX_COMPONENTS_PER_ENTITY],
+            ) -> Self::RefTuple<'b> {
                 ($(
                     &*((sorted_pointers[Self::DESCRIPTOR.unsorted_to_sorted($elem_idx) as usize]) as *mut $elem),
                 )*)
             }
 
-            unsafe fn pointers_as_mut_ref_tuple(
-                sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
-            ) -> Self::MutRefTuple {
+            unsafe fn pointers_as_mut_ref_tuple<'a, 'b>(
+                sorted_pointers: &'a [*mut u8; MAX_COMPONENTS_PER_ENTITY],
+            ) -> Self::MutRefTuple<'b> {
                 ($(
                     &mut *((sorted_pointers[Self::DESCRIPTOR.unsorted_to_sorted($elem_idx) as usize]) as *mut $elem),
                 )*)
             }
 
-            unsafe fn slice_unchecked(
-                sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
+            unsafe fn slice_unchecked<'a, 'b>(
+                sorted_pointers: &'a [*mut u8; MAX_COMPONENTS_PER_ENTITY],
                 len: usize,
-            ) -> Self::SliceRefTuple {
+            ) -> Self::SliceRefTuple<'b> {
                 ($(
                     core::slice::from_raw_parts(sorted_pointers[Self::DESCRIPTOR.unsorted_to_sorted($elem_idx) as usize] as *const $elem, len),
                 )*)
             }
 
-            unsafe fn slice_unchecked_mut(
-                sorted_pointers: &[*mut u8; MAX_COMPONENTS_PER_ENTITY],
+            unsafe fn slice_unchecked_mut<'a, 'b>(
+                sorted_pointers: &'a [*mut u8; MAX_COMPONENTS_PER_ENTITY],
                 len: usize,
-            ) -> Self::SliceMutRefTuple {
+            ) -> Self::SliceMutRefTuple<'b> {
                                 ($(
                     core::slice::from_raw_parts_mut(sorted_pointers[Self::DESCRIPTOR.unsorted_to_sorted($elem_idx) as usize] as *mut $elem, len),
                 )*)
@@ -227,21 +231,21 @@ mod test {
             let mut ptrs = [core::ptr::null_mut(); MAX_COMPONENTS_PER_ENTITY];
             ComponentGroup::as_sorted_pointers(&mut group, &mut ptrs);
 
-            let result = <(A, B, C) as ComponentGroup<'_>>::pointers_as_ref_tuple(&ptrs);
+            let result = <(A, B, C) as ComponentGroup>::pointers_as_ref_tuple(&ptrs);
             assert_eq!(result.0 as *const A as *mut u8, ptrs[0]);
             assert_eq!(result.1 as *const B as *mut u8, ptrs[1]);
             assert_eq!(result.2 as *const C as *mut u8, ptrs[2]);
 
-            let result = <(A, B, C) as ComponentGroup<'_>>::pointers_as_mut_ref_tuple(&ptrs);
+            let result = <(A, B, C) as ComponentGroup>::pointers_as_mut_ref_tuple(&ptrs);
             assert_eq!(result.0 as *mut A as *mut u8, ptrs[0]);
             assert_eq!(result.1 as *mut B as *mut u8, ptrs[1]);
             assert_eq!(result.2 as *mut C as *mut u8, ptrs[2]);
 
-            let result = <(B, C, A) as ComponentGroup<'_>>::pointers_as_ref_tuple(&ptrs);
+            let result = <(B, C, A) as ComponentGroup>::pointers_as_ref_tuple(&ptrs);
             assert_eq!(result.0 as *const B as *mut u8, ptrs[1]);
             assert_eq!(result.1 as *const C as *mut u8, ptrs[2]);
             assert_eq!(result.2 as *const A as *mut u8, ptrs[0]);
-            let result = <(C, A, B) as ComponentGroup<'_>>::pointers_as_mut_ref_tuple(&ptrs);
+            let result = <(C, A, B) as ComponentGroup>::pointers_as_mut_ref_tuple(&ptrs);
             assert_eq!(result.0 as *mut C as *mut u8, ptrs[2]);
             assert_eq!(result.1 as *mut A as *mut u8, ptrs[0]);
             assert_eq!(result.2 as *mut B as *mut u8, ptrs[1]);
@@ -256,12 +260,12 @@ mod test {
             let mut ptrs = [core::ptr::null_mut(); MAX_COMPONENTS_PER_ENTITY];
             ComponentGroup::as_sorted_pointers(&mut group, &mut ptrs);
 
-            let result = <(A, B, C) as ComponentGroup<'_>>::read_from_sorted_pointers(&ptrs);
+            let result = <(A, B, C) as ComponentGroup>::read_from_sorted_pointers(&ptrs);
             assert_eq!(result.0, group.0);
             assert_eq!(result.1, group.1);
             assert_eq!(result.2, group.2);
 
-            let result = <(C, A, B) as ComponentGroup<'_>>::read_from_sorted_pointers(&ptrs);
+            let result = <(C, A, B) as ComponentGroup>::read_from_sorted_pointers(&ptrs);
             assert_eq!(result.1, group.0);
             assert_eq!(result.2, group.1);
             assert_eq!(result.0, group.2);
@@ -332,13 +336,13 @@ mod test {
             pointers[2] = slice_c.as_mut_ptr() as *mut u8;
 
             let slices: (&[A], &[B], &[C]) =
-                <(A, B, C) as ComponentGroup<'_>>::slice_unchecked(&pointers, slice_a.len());
+                <(A, B, C) as ComponentGroup>::slice_unchecked(&pointers, slice_a.len());
             assert_eq!(slices.0.as_ptr() as *mut u8, pointers[0]);
             assert_eq!(slices.1.as_ptr() as *mut u8, pointers[1]);
             assert_eq!(slices.2.as_ptr() as *mut u8, pointers[2]);
 
             let slices: (&[B], &[C], &[A]) =
-                <(B, C, A) as ComponentGroup<'_>>::slice_unchecked(&pointers, slice_a.len());
+                <(B, C, A) as ComponentGroup>::slice_unchecked(&pointers, slice_a.len());
             assert_eq!(slices.0.as_ptr() as *mut u8, pointers[1]);
             assert_eq!(slices.1.as_ptr() as *mut u8, pointers[2]);
             assert_eq!(slices.2.as_ptr() as *mut u8, pointers[0]);
@@ -553,7 +557,7 @@ mod tests {
 
     #[test]
     fn test_component_group_len() {
-        fn test_group_len<'c, G: ComponentGroup<'c>>(expected_len: usize) {
+        fn test_group_len<G: ComponentGroup>(expected_len: usize) {
             assert_eq!(G::DESCRIPTOR.archetype().len() as usize, expected_len);
         }
 

@@ -6,7 +6,7 @@ use core::marker::PhantomData;
 
 pub(crate) struct FilterArchetypeIter<
     'a,
-    G: ComponentGroup<'a>,
+    G: ComponentGroup,
     F: Fn(&ArchetypeDescriptor) -> bool,
 > {
     sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
@@ -17,7 +17,7 @@ pub(crate) struct FilterArchetypeIter<
     _phantom: PhantomData<fn(G)>,
 }
 
-impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> FilterArchetypeIter<'a, G, F> {
+impl<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool> FilterArchetypeIter<'a, G, F> {
     pub(in crate::archetype_registry) fn new(
         sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
         archetypes: &'a [Archetype],
@@ -34,7 +34,7 @@ impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> FilterArche
     }
 }
 
-impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> Iterator
+impl<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool> Iterator
     for FilterArchetypeIter<'a, G, F>
 {
     type Item = &'a Archetype;
@@ -70,7 +70,7 @@ impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> Iterator
     }
 }
 
-impl<'a, G: ComponentGroup<'a>, F: Fn(&ArchetypeDescriptor) -> bool> FusedIterator
+impl<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool> FusedIterator
     for FilterArchetypeIter<'a, G, F>
 {
 }

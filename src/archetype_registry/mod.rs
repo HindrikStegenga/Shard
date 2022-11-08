@@ -214,49 +214,49 @@ impl ArchetypeRegistry {
         self.archetypes.get_unchecked_mut(index as usize)
     }
 
-    pub fn iter_components_matching<'a, G: ComponentGroup<'a>>(
+    pub fn iter_components_matching<'a, G: ComponentGroup>(
         &'a self,
-    ) -> impl Iterator<Item = <G as ComponentGroup<'a>>::SliceRefTuple> {
+    ) -> impl Iterator<Item = <G as ComponentGroup>::SliceRefTuple<'a>> {
         MatchingIter::<'a, G>::new(&self.sorted_mappings, &self.archetypes)
     }
 
-    pub fn iter_components_matching_mut<'a, G: ComponentGroup<'a>>(
+    pub fn iter_components_matching_mut<'a, G: ComponentGroup>(
         &'a mut self,
-    ) -> impl Iterator<Item = <G as ComponentGroup<'a>>::SliceMutRefTuple> {
+    ) -> impl Iterator<Item = <G as ComponentGroup>::SliceMutRefTuple<'a>> {
         MatchingIterMut::<'a, G>::new(&self.sorted_mappings, &mut self.archetypes)
     }
 
-    pub fn iter_entity_components_matching<'a, G: ComponentGroup<'a>>(
+    pub fn iter_entity_components_matching<'a, G: ComponentGroup>(
         &'a self,
-    ) -> impl Iterator<Item = (&'a [Entity], <G as ComponentGroup<'a>>::SliceRefTuple)> {
+    ) -> impl Iterator<Item = (&'a [Entity], <G as ComponentGroup>::SliceRefTuple<'a>)> {
         EntityMatchingIter::<'a, G>::new(&self.sorted_mappings, &self.archetypes)
     }
 
-    pub fn iter_entity_components_matching_mut<'a, G: ComponentGroup<'a>>(
+    pub fn iter_entity_components_matching_mut<'a, G: ComponentGroup>(
         &'a mut self,
-    ) -> impl Iterator<Item = (&'a [Entity], <G as ComponentGroup<'a>>::SliceMutRefTuple)> {
+    ) -> impl Iterator<Item = (&'a [Entity], <G as ComponentGroup>::SliceMutRefTuple<'a>)> {
         EntityMatchingIterMut::<'a, G>::new(&self.sorted_mappings, &mut self.archetypes)
     }
 
     pub fn iter_filtered_components_matching<
         'a,
-        G: ComponentGroup<'a>,
+        G: ComponentGroup,
         F: Fn(&ArchetypeDescriptor) -> bool,
     >(
         &'a self,
         filter_closure: F,
-    ) -> impl Iterator<Item = <G as ComponentGroup<'a>>::SliceRefTuple> {
+    ) -> impl Iterator<Item = <G as ComponentGroup>::SliceRefTuple<'a>> {
         FilterMatchingIter::<'a, G, F>::new(&self.sorted_mappings, &self.archetypes, filter_closure)
     }
 
     pub fn iter_filtered_components_matching_mut<
         'a,
-        G: ComponentGroup<'a>,
+        G: ComponentGroup,
         F: Fn(&ArchetypeDescriptor) -> bool,
     >(
         &'a mut self,
         filter_closure: F,
-    ) -> impl Iterator<Item = <G as ComponentGroup<'a>>::SliceMutRefTuple> {
+    ) -> impl Iterator<Item = <G as ComponentGroup>::SliceMutRefTuple<'a>> {
         FilterMatchingIterMut::<'a, G, F>::new(
             &self.sorted_mappings,
             &mut self.archetypes,
@@ -266,12 +266,12 @@ impl ArchetypeRegistry {
 
     pub fn iter_filtered_entity_components_matching<
         'a,
-        G: ComponentGroup<'a>,
+        G: ComponentGroup,
         F: Fn(&ArchetypeDescriptor) -> bool,
     >(
         &'a self,
         filter_closure: F,
-    ) -> impl Iterator<Item = (&'a [Entity], <G as ComponentGroup<'a>>::SliceRefTuple)> {
+    ) -> impl Iterator<Item = (&'a [Entity], <G as ComponentGroup>::SliceRefTuple<'a>)> {
         FilterEntityMatchingIter::<'a, G, F>::new(
             &self.sorted_mappings,
             &self.archetypes,
@@ -281,12 +281,12 @@ impl ArchetypeRegistry {
 
     pub fn iter_filtered_entity_components_matching_mut<
         'a,
-        G: ComponentGroup<'a>,
+        G: ComponentGroup,
         F: Fn(&ArchetypeDescriptor) -> bool,
     >(
         &'a mut self,
         filter_closure: F,
-    ) -> impl Iterator<Item = (&'a [Entity], <G as ComponentGroup<'a>>::SliceMutRefTuple)> {
+    ) -> impl Iterator<Item = (&'a [Entity], <G as ComponentGroup>::SliceMutRefTuple<'a>)> {
         FilterEntityMatchingIterMut::<'a, G, F>::new(
             &self.sorted_mappings,
             &mut self.archetypes,

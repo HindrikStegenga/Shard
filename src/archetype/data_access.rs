@@ -41,10 +41,10 @@ impl Archetype {
     /// # Safety:
     /// - Component group type [`G`] must be a subset of the types in the archetype
     /// - panics otherwise.
-    pub unsafe fn get_fuzzy_components_unchecked<'a, G: ComponentGroup<'a>>(
+    pub unsafe fn get_fuzzy_components_unchecked<'a, G: ComponentGroup>(
         &'a self,
         index: u32,
-    ) -> G::RefTuple {
+    ) -> G::RefTuple<'a> {
         debug_assert!(G::DESCRIPTOR.is_valid());
         let pointers = self.get_fuzzy_pointers_unchecked::<G>(index);
         G::pointers_as_ref_tuple(&pointers)
@@ -54,10 +54,10 @@ impl Archetype {
     /// # Safety:
     /// - Component group type [`G`] must be a subset of the types in the archetype
     /// - panics otherwise.
-    pub unsafe fn get_fuzzy_components_unchecked_mut<'a, G: ComponentGroup<'a>>(
+    pub unsafe fn get_fuzzy_components_unchecked_mut<'a, G: ComponentGroup>(
         &'a mut self,
         index: u32,
-    ) -> G::MutRefTuple {
+    ) -> G::MutRefTuple<'a> {
         debug_assert!(G::DESCRIPTOR.is_valid());
         let pointers = self.get_fuzzy_pointers_unchecked::<G>(index);
         G::pointers_as_mut_ref_tuple(&pointers)
@@ -85,9 +85,9 @@ impl Archetype {
     /// - Must be called exactly with the component group contained in the archetype.
     /// - a compatible group type is also accepted.
     /// - [`G`] must have a valid archetype descriptor.
-    pub unsafe fn get_slices_unchecked_exact_mut<'a, G: ComponentGroup<'a>>(
+    pub unsafe fn get_slices_unchecked_exact_mut<'a, G: ComponentGroup>(
         &'a mut self,
-    ) -> G::SliceMutRefTuple {
+    ) -> G::SliceMutRefTuple<'a> {
         debug_assert_eq!(
             G::DESCRIPTOR.archetype().archetype_id(),
             self.descriptor.archetype_id()
@@ -101,9 +101,9 @@ impl Archetype {
     /// - Must be called exactly with the component group contained in the archetype.
     /// - a compatible group type is also accepted.
     /// - [`G`] must have a valid archetype descriptor.
-    pub unsafe fn get_slices_unchecked_exact<'a, G: ComponentGroup<'a>>(
+    pub unsafe fn get_slices_unchecked_exact<'a, G: ComponentGroup>(
         &'a self,
-    ) -> G::SliceRefTuple {
+    ) -> G::SliceRefTuple<'a> {
         debug_assert_eq!(
             G::DESCRIPTOR.archetype().archetype_id(),
             self.descriptor.archetype_id()
@@ -117,9 +117,9 @@ impl Archetype {
     /// # Safety:
     /// - Only call this with subsets of the types stored in the archetype.
     /// - [`G`] must have a valid archetype descriptor.
-    pub unsafe fn get_fuzzy_slices_unchecked<'s, G: ComponentGroup<'s>>(
+    pub unsafe fn get_fuzzy_slices_unchecked<'s, G: ComponentGroup>(
         &'s self,
-    ) -> G::SliceRefTuple {
+    ) -> G::SliceRefTuple<'s> {
         debug_assert!(G::DESCRIPTOR.is_valid());
         let pointers = self.get_fuzzy_pointers_unchecked::<G>(0);
         G::slice_unchecked(&pointers, self.len() as usize)
@@ -130,9 +130,9 @@ impl Archetype {
     /// # Safety:
     /// - Only call this with subsets of the types stored in the archetype.
     /// - [`G`] must have a valid archetype descriptor.
-    pub unsafe fn get_fuzzy_slices_unchecked_mut<'s, G: ComponentGroup<'s>>(
+    pub unsafe fn get_fuzzy_slices_unchecked_mut<'s, G: ComponentGroup>(
         &'s mut self,
-    ) -> G::SliceMutRefTuple {
+    ) -> G::SliceMutRefTuple<'s> {
         debug_assert!(G::DESCRIPTOR.is_valid());
         let pointers = self.get_fuzzy_pointers_unchecked::<G>(0);
         G::slice_unchecked_mut(&pointers, self.len() as usize)
@@ -144,9 +144,9 @@ impl Archetype {
     /// # Safety:
     /// - Only call this with subsets of the types stored in the archetype.
     /// - [`G`] must have a valid archetype descriptor.
-    pub unsafe fn get_entity_fuzzy_slices_unchecked<'s, G: ComponentGroup<'s>>(
+    pub unsafe fn get_entity_fuzzy_slices_unchecked<'s, G: ComponentGroup>(
         &'s self,
-    ) -> (&'s [Entity], G::SliceRefTuple) {
+    ) -> (&'s [Entity], G::SliceRefTuple<'s>) {
         debug_assert!(G::DESCRIPTOR.is_valid());
         let pointers = self.get_fuzzy_pointers_unchecked::<G>(0);
         (
@@ -161,9 +161,9 @@ impl Archetype {
     /// # Safety:
     /// - Only call this with subsets of the types stored in the archetype.
     /// - [`G`] must have a valid archetype descriptor.
-    pub unsafe fn get_entity_fuzzy_slices_unchecked_mut<'s, G: ComponentGroup<'s>>(
+    pub unsafe fn get_entity_fuzzy_slices_unchecked_mut<'s, G: ComponentGroup>(
         &'s mut self,
-    ) -> (&'s [Entity], G::SliceMutRefTuple) {
+    ) -> (&'s [Entity], G::SliceMutRefTuple<'s>) {
         debug_assert!(G::DESCRIPTOR.is_valid());
         let pointers = self.get_fuzzy_pointers_unchecked::<G>(0);
         (
@@ -206,7 +206,7 @@ impl Archetype {
     /// - Does not call drop on the given entity.
     /// - Increases the size of the archetype's memory allocations if required.
     /// - If resizing fails, this function will panic.
-    pub unsafe fn push_entity_unchecked<'a, G: ComponentGroup<'a>>(
+    pub unsafe fn push_entity_unchecked<'a, G: ComponentGroup>(
         &mut self,
         entity_handle: Entity,
         entity: G,
@@ -269,7 +269,7 @@ impl Archetype {
     /// - Assumes the underlying backing memory is sized accordingly to fit the data.
     /// - Does not increase the entity counter.
     /// - Does not check if [`index`] is out of bounds or not.
-    pub unsafe fn write_entity_unchecked<'a, G: ComponentGroup<'a>>(
+    pub unsafe fn write_entity_unchecked<G: ComponentGroup>(
         &mut self,
         index: u32,
         entity_handle: Entity,
@@ -350,7 +350,7 @@ impl Archetype {
     /// - [`index`] must be smaller than the amount of entities in the archetype.
     /// - [`G`] must exactly match the type store in the archetype.
     /// - Ordering of component in [`G`] may be different.
-    pub unsafe fn swap_remove_unchecked<'a, G: ComponentGroup<'a>>(
+    pub unsafe fn swap_remove_unchecked<G: ComponentGroup>(
         &mut self,
         index: u32,
     ) -> (G, bool) {
@@ -406,7 +406,7 @@ impl Archetype {
     /// # Safety:
     /// - [`G`] must be exactly the type stored in the archetype.
     /// - a compatible one also works. (i.e. same archetype, different ordering)
-    pub unsafe fn read_components_exact_unchecked<'a, G: ComponentGroup<'a>>(
+    pub unsafe fn read_components_exact_unchecked<G: ComponentGroup>(
         &self,
         index: u32,
     ) -> G {
@@ -547,7 +547,7 @@ impl Archetype {
     /// # Safety:
     /// - offset must be smaller than self.capacity.
     /// - Only call this with subsets of the types stored in the shard.
-    unsafe fn get_fuzzy_pointers_unchecked<'a, G: ComponentGroup<'a>>(
+    unsafe fn get_fuzzy_pointers_unchecked<'a, G: ComponentGroup>(
         &'a self,
         offset: u32,
     ) -> [*mut u8; MAX_COMPONENTS_PER_ENTITY] {
