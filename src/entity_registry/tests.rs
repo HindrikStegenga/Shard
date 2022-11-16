@@ -20,7 +20,7 @@ fn test_entity_registry() {
         let entry = registry.get_entity_entry(e).unwrap();
         assert_eq!(entry.version(), 0);
         assert_eq!(entry.archetype_index(), 1);
-        assert_eq!(entry.index_in_archetype(), 2);
+        assert_eq!(entry.index_in_archetype().value(), 2);
         assert!(registry.destroy_entity(e));
     });
     entities.iter().cloned().for_each(|e| {
@@ -39,7 +39,7 @@ fn test_entity_registry() {
         let entry = registry.get_entity_entry(*entity).unwrap();
         assert_ne!(entry.version(), 0);
         assert_eq!(entry.archetype_index(), 1);
-        assert_eq!(entry.index_in_archetype(), 2);
+        assert_eq!(entry.index_in_archetype().value(), 2);
         assert!(registry.destroy_entity(*entity));
     });
     entities.iter().for_each(|entity| {

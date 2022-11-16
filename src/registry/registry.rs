@@ -2,6 +2,7 @@ use crate::archetype::Archetype;
 use crate::archetype_descriptor::ArchetypeDescriptor;
 use crate::archetype_registry::ArchetypeRegistry;
 use crate::descriptors::component_group::ComponentGroup;
+use crate::entity_registry::entry::IndexInArchetype;
 use crate::{entity_registry::registry::EntityRegistry, Component, Entity};
 
 /// The primary construct in the *Shard* Entity Component System (ECS).
@@ -32,9 +33,9 @@ impl Registry {
             Some(v) => v,
             None => return Err(components),
         };
-        let idx_in_archetype =
+        let index_in_archetype =
             unsafe { archetype.push_entity_unchecked(entity_entry.entity(), components) };
-        entity_entry.set_index_in_archetype(idx_in_archetype);
+        entity_entry.set_index_in_archetype(IndexInArchetype::new(index_in_archetype).unwrap());
         entity_entry.set_archetype_index(archetype_index);
         Ok(entity_entry.entity())
     }
@@ -49,12 +50,12 @@ impl Registry {
         let archetype = unsafe { self.archetypes.get_unchecked_mut(entry.archetype_index()) };
         let index_in_archetype = entry.index_in_archetype();
         unsafe {
-            if archetype.swap_drop_unchecked(index_in_archetype) {
+            if archetype.swap_drop_unchecked(index_in_archetype.value()) {
                 // A swap was needed, so we need to update the index_in_archetype of the entry that it was swapped with.
                 // We retrieve the entity handle using the metadata, which is now at the old entity's position.
                 let swapped_entity = *archetype
                     .entities()
-                    .get_unchecked(index_in_archetype as usize);
+                    .get_unchecked(index_in_archetype.value() as usize);
                 self.entities
                     .get_entity_entry_mut(swapped_entity)
                     .unwrap()
@@ -77,11 +78,11 @@ impl Registry {
         let archetype = unsafe { self.archetypes.get_unchecked_mut(entry.archetype_index()) };
         let index_in_archetype = entry.index_in_archetype();
         unsafe {
-            return match archetype.swap_remove_unchecked::<G>(index_in_archetype) {
+            return match archetype.swap_remove_unchecked::<G>(index_in_archetype.value()) {
                 (value, true) => {
                     // A swap was needed, so we need to update the index_in_archetype of the entry that it was swapped with.
                     // We retrieve the entity handle using the metadata, which is now at the old entity's position.
-                    let swapped_entity = archetype.entities()[index_in_archetype as usize];
+                    let swapped_entity = archetype.entities()[index_in_archetype.value() as usize];
                     self.entities
                         .get_entity_entry_mut(swapped_entity)
                         .unwrap()
@@ -113,10 +114,7 @@ impl Registry {
     /// Returns true if a given entity has all of the specified components.
     /// Returns false if entity is invalid or does not have all of the specified components.
     /// If you need to check for only a single components, prefer to use [`Registry::has_component`] instead.
-    pub fn has_components<'registry, G: ComponentGroup>(
-        &'registry self,
-        entity: Entity,
-    ) -> bool {
+    pub fn has_components<'registry, G: ComponentGroup>(&'registry self, entity: Entity) -> bool {
         let entry = match self.entities.get_entity_entry(entity) {
             None => return false,
             Some(v) => v,
@@ -139,7 +137,7 @@ impl Registry {
             if !archetype.descriptor().has_component::<C>() {
                 return None;
             }
-            archetype.get_component_unchecked::<C>(entry.index_in_archetype())
+            archetype.get_component_unchecked::<C>(entry.index_in_archetype().value())
         }
         .into()
     }
@@ -163,7 +161,7 @@ impl Registry {
             {
                 return None;
             }
-            archetype.get_fuzzy_components_unchecked::<G>(entry.index_in_archetype())
+            archetype.get_fuzzy_components_unchecked::<G>(entry.index_in_archetype().value())
         }
         .into()
     }
@@ -181,7 +179,7 @@ impl Registry {
             if !archetype.descriptor().has_component::<C>() {
                 return None;
             }
-            archetype.get_component_unchecked_mut::<C>(entry.index_in_archetype())
+            archetype.get_component_unchecked_mut::<C>(entry.index_in_archetype().value())
         }
         .into()
     }
@@ -204,7 +202,7 @@ impl Registry {
             {
                 return None;
             }
-            archetype.get_fuzzy_components_unchecked_mut::<G>(entry.index_in_archetype())
+            archetype.get_fuzzy_components_unchecked_mut::<G>(entry.index_in_archetype().value())
         }
         .into()
     }
@@ -230,10 +228,11 @@ impl Registry {
         };
 
         // Make sure the entity we move is at the end of it's archetype (so data stays contiguous).
-        if unsafe { source_archetype.swap_to_last_unchecked(entry.index_in_archetype()) } {
+        if unsafe { source_archetype.swap_to_last_unchecked(entry.index_in_archetype().value()) } {
             // A swap was needed, so we need to update the index_in_archetype of the entry that it was swapped with.
             // We retrieve the entity handle using the metadata, which is now at the swapped with entity's position.
-            let swapped_entity = source_archetype.entities()[entry.index_in_archetype() as usize];
+            let swapped_entity =
+                source_archetype.entities()[entry.index_in_archetype().value() as usize];
             self.entities
                 .get_entity_entry_mut(swapped_entity)
                 .unwrap()
@@ -268,7 +267,9 @@ impl Registry {
             // Update the original entity entry to point to destination archetype and index in archetype.
             let entity_entry = self.entities.get_entity_entry_mut(entity).unwrap();
             entity_entry.set_archetype_index(destination_archetype_index);
-            entity_entry.set_index_in_archetype(destination_entity_index_in_archetype);
+            entity_entry.set_index_in_archetype(
+                IndexInArchetype::new(destination_entity_index_in_archetype).unwrap(),
+            );
 
             Ok(())
         }
@@ -295,10 +296,11 @@ impl Registry {
         };
 
         // Make sure the entity we move is at the end of it's archetype (so data stays contiguous).
-        if unsafe { source_archetype.swap_to_last_unchecked(entry.index_in_archetype()) } {
+        if unsafe { source_archetype.swap_to_last_unchecked(entry.index_in_archetype().value()) } {
             // A swap was needed, so we need to update the index_in_archetype of the entry that it was swapped with.
             // We retrieve the entity handle using the metadata, which is now at the swapped with entity's position.
-            let swapped_entity = source_archetype.entities()[entry.index_in_archetype() as usize];
+            let swapped_entity =
+                source_archetype.entities()[entry.index_in_archetype().value() as usize];
             self.entities
                 .get_entity_entry_mut(swapped_entity)
                 .unwrap()
@@ -333,7 +335,9 @@ impl Registry {
             // Update the original entity entry to point to destination archetype and index in archetype.
             let entity_entry = self.entities.get_entity_entry_mut(entity).unwrap();
             entity_entry.set_archetype_index(destination_archetype_index);
-            entity_entry.set_index_in_archetype(destination_entity_index_in_archetype);
+            entity_entry.set_index_in_archetype(
+                IndexInArchetype::new(destination_entity_index_in_archetype).unwrap(),
+            );
 
             Ok(component)
         }
@@ -359,8 +363,7 @@ impl Registry {
     pub fn iter_components_matching_mut<'registry, G: ComponentGroup>(
         &'registry mut self,
     ) -> impl Iterator<Item = <G as ComponentGroup>::SliceMutRefTuple<'registry>> + 'registry {
-        self.archetypes
-            .iter_components_matching_mut::<G>()
+        self.archetypes.iter_components_matching_mut::<G>()
     }
 
     /// Returns an iterator which iterates over all entities and components in archetypes
@@ -373,8 +376,7 @@ impl Registry {
             <G as ComponentGroup>::SliceRefTuple<'registry>,
         ),
     > + 'registry {
-        self.archetypes
-            .iter_entity_components_matching::<G>()
+        self.archetypes.iter_entity_components_matching::<G>()
     }
 
     /// Returns an iterator which mutably iterates over all entities and components in archetypes
@@ -387,8 +389,7 @@ impl Registry {
             <G as ComponentGroup>::SliceMutRefTuple<'registry>,
         ),
     > + 'registry {
-        self.archetypes
-            .iter_entity_components_matching_mut::<G>()
+        self.archetypes.iter_entity_components_matching_mut::<G>()
     }
 
     /// Returns an iterator which iterates over all components in archetypes

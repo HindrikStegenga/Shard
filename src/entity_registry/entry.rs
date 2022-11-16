@@ -1,63 +1,220 @@
-use crate::constants::INVALID_ARCHETYPE_INDEX;
+use crate::INVALID_ARCHETYPE_INDEX;
 
-/// Represents entity reference to the archetype + index + Version.
+#[repr(C)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct IndexInArchetype {
+    value: u32,
+}
+
+impl IndexInArchetype {
+    // Equivalent to 2^24 - 1, as the stored value is [0 - 2^24) excluding 2^24 itself.
+    pub const INVALID_VALUE: u32 = 16777215;
+
+    /// Constructs a new IndexInArchetype using `value`.
+    /// Returns `None` in case `value` >= Self::INVALID_VALUE.
+    pub const fn new(value: u32) -> Option<IndexInArchetype> {
+        if value >= IndexInArchetype::INVALID_VALUE {
+            return None;
+        }
+        Some(Self { value })
+    }
+    /// Constructs a new IndexInArchetype using `value`.
+    /// If value >= `Self::INVALID_VALUE` behaviour is undefined.
+    pub const unsafe fn new_unchecked(value: u32) -> IndexInArchetype {
+        Self { value }
+    }
+
+    /// Constructs a new IndexInArchetype from raw bytes.
+    pub const fn from_bytes(bytes: [u8; 3]) -> IndexInArchetype {
+        let mut value = 0;
+        value += (bytes[0] as u32) << 16;
+        value += (bytes[1] as u32) << 8;
+        value += bytes[2] as u32;
+        Self { value }
+    }
+
+    /// Returns the triple byte representation of the value.
+    /// This is a shifted representation storing only the 3 most significant bytes.
+    pub const fn to_bytes(&self) -> [u8; 3] {
+        [
+            ((self.value & 0x00FF0000) >> 16) as u8,
+            ((self.value & 0x0000FF00) >> 8) as u8,
+            (self.value & 0x000000FF) as u8,
+        ]
+    }
+
+    /// Returns the raw numeric value of the index in archetype.
+    pub const fn value(&self) -> u32 {
+        self.value
+    }
+}
+
+impl Default for IndexInArchetype {
+    fn default() -> Self {
+        Self { value: 0 }
+    }
+}
+
+/// Represents entity reference to the [ version | index_in_archetype | archetype_index | length | custom_bits ].
 /// MEMORY_LAYOUTS:
-/// Valid:      |version: u8|idx_in_arch: u24|arch_idx: u16|
-/// Invalid:    |version: u8|next_fr_slt: u24|INV_ARCH: u16|
-///             |     0     | 1    2     3   | 4       5   |
-#[repr(C, align(2))]
-#[derive(Default, Clone, Debug)]
+/// Valid:      |version: u8|idx_in_arch: u24|arch_idx: u16| archetype_length: u8 | custom_bits: u8 ]
+/// Invalid:    |version: u8|next_fr_slt: u24|INV_ARCH: u16| undefined: u8        | undefined: u8   ]
+///             |     0     | 1    2     3   | 4       5   |        6             |        7        ]
+#[repr(C)]
+#[derive(Clone, Debug)]
 pub struct EntityEntry {
-    values: [u8; 6],
+    values: [u8; 8],
+}
+
+impl Default for EntityEntry {
+    fn default() -> Self {
+        Self {
+            values: [
+                0, // version               byte 1
+                0, // index_in_archetype    byte 1
+                0, // index_in_archetype    byte 2
+                0, // index_in_archetype    byte 3
+                0, // archetype_index       byte 1
+                0, // archetype_index       byte 2
+                0, // archetype_length      byte 1
+                0, // custom_bits           byte 1
+            ],
+        }
+    }
 }
 
 impl EntityEntry {
-    /// Returns the version of the entry.
-    pub fn version(&self) -> u8 {
-        self.values[0]
+    pub const fn version(&self) -> u8 {
+        return self.values[0];
     }
-    /// Sets the version of the entity.
     pub fn set_version(&mut self, version: u8) {
         self.values[0] = version;
     }
-    /// Returns true if the entity entry is valid.
-    pub fn is_valid(&self) -> bool {
-        self.archetype_index() != INVALID_ARCHETYPE_INDEX
+    pub const fn index_in_archetype(&self) -> IndexInArchetype {
+        IndexInArchetype::from_bytes([self.values[1], self.values[2], self.values[3]])
     }
-    /// Sets the entry to invalid.
-    pub fn set_invalid(&mut self) {
-        self.set_archetype_index(INVALID_ARCHETYPE_INDEX);
+    pub fn set_index_in_archetype(&mut self, index_in_archetype: IndexInArchetype) {
+        self.values[1] = index_in_archetype.to_bytes()[0];
+        self.values[2] = index_in_archetype.to_bytes()[1];
+        self.values[3] = index_in_archetype.to_bytes()[2];
     }
-    /// Sets the archetype index.
+    pub const fn archetype_index(&self) -> u16 {
+        u16::from_ne_bytes([self.values[4], self.values[5]])
+    }
     pub fn set_archetype_index(&mut self, archetype_index: u16) {
         let bytes = archetype_index.to_ne_bytes();
         self.values[4] = bytes[0];
         self.values[5] = bytes[1];
     }
-    /// Returns the archetype index of the entry.
-    pub fn archetype_index(&self) -> u16 {
-        u16::from_ne_bytes([self.values[4], self.values[5]])
+    pub const fn archetype_length(&self) -> u8 {
+        self.values[6]
     }
-    /// Returns the index in archetype of the entry.
-    pub fn index_in_archetype(&self) -> u32 {
-        let value = u32::from_ne_bytes([
-            self.values[0],
-            self.values[1],
-            self.values[2],
-            self.values[3],
-        ]);
-        (value & 0x00FFFFFF) >> 8
+    pub fn set_archetype_length(&mut self, archetype_length: u8) {
+        self.values[6] = archetype_length;
     }
-    /// Sets the index in archetype for the entry.
-    pub fn set_index_in_archetype(&mut self, index: u32) {
-        let version_byte = self.values[0];
-        let index = index << 8;
-        let bytes = index.to_ne_bytes();
+    pub const fn user_defined_metadata(&self) -> u8 {
+        self.values[7]
+    }
+    pub fn set_user_defined_metadata(&mut self, metadata: u8) {
+        self.values[7] = metadata;
+    }
+    /// Checks if this entry points to a valid entity.
+    pub const fn is_valid(&self) -> bool {
+        return self.archetype_index() != INVALID_ARCHETYPE_INDEX;
+    }
+    /// Sets the archetype index to invalid, indicating this entry does not point to a existing entity.
+    pub fn invalidate(&mut self) {
+        self.set_archetype_index(INVALID_ARCHETYPE_INDEX);
+    }
+}
 
-        self.values[0] = bytes[0];
-        self.values[1] = bytes[1];
-        self.values[2] = bytes[2];
-        self.values[3] = bytes[3];
-        self.values[0] = version_byte;
+#[cfg(test)]
+mod tests {
+    use super::{EntityEntry, IndexInArchetype};
+
+    const TEST_VALUES_U8: [u8; 10] = [0, 3, 7, 12, 89, u8::MAX - 1, u8::MAX, 72, 134, 1];
+    const TEST_VALUES_U16: [u16; 10] = [0, 1, 3, 7, 234, 29304, 13032, u16::MAX, u16::MAX - 1, 1];
+    const TEST_VALUES_U32: [u32; 10] = [
+        0,
+        1,
+        3,
+        7,
+        234,
+        2429304,
+        13032,
+        IndexInArchetype::INVALID_VALUE - 1,
+        2304820,
+        1,
+    ];
+
+    /// Checks if bytes that are not in the mutation_allowed list are modified.
+    /// Returns true if they're not mutated.
+    fn check_bytes(
+        before_bytes: &[u8; 8],
+        after_bytes: &[u8; 8],
+        mutation_allowed: &[usize],
+    ) -> bool {
+        for i in 0..before_bytes.len() {
+            if mutation_allowed.contains(&i) {
+                continue;
+            }
+            if before_bytes[i] != after_bytes[i] {
+                return false;
+            }
+        }
+        true
+    }
+
+    #[test]
+    fn test_entity_register_enty() {
+        let mut entry = EntityEntry::default();
+
+        assert_eq!(entry.version(), 0);
+        assert_eq!(entry.user_defined_metadata(), 0);
+        assert_eq!(entry.archetype_length(), 0);
+        assert_eq!(entry.archetype_index(), 0);
+        assert_eq!(entry.index_in_archetype().value(), 0);
+
+        // Test IndexInArchetype
+        for value in TEST_VALUES_U32 {
+            let idx = IndexInArchetype::new(value).unwrap();
+            assert_eq!(idx.value(), value);
+        }
+
+        // Test version field
+        for value in TEST_VALUES_U8 {
+            let before_bytes = entry.values;
+            entry.set_version(value);
+            assert_eq!(entry.version(), value);
+            assert!(check_bytes(&before_bytes, &entry.values, &[0]));
+        }
+        // Test user defined metadata field
+        for value in TEST_VALUES_U8 {
+            let before_bytes = entry.values;
+            entry.set_user_defined_metadata(value);
+            assert_eq!(entry.user_defined_metadata(), value);
+            assert!(check_bytes(&before_bytes, &entry.values, &[7]));
+        }
+        // Test archetype_length field
+        for value in TEST_VALUES_U8 {
+            let before_bytes = entry.values;
+            entry.set_archetype_length(value);
+            assert_eq!(entry.archetype_length(), value);
+            assert!(check_bytes(&before_bytes, &entry.values, &[6]));
+        }
+        // Test archetype index field.
+        for value in TEST_VALUES_U16 {
+            let before_bytes = entry.values;
+            entry.set_archetype_index(value);
+            assert_eq!(entry.archetype_index(), value);
+            assert!(check_bytes(&before_bytes, &entry.values, &[4, 5]));
+        }
+        // Test index in archetype field.
+        for value in TEST_VALUES_U32 {
+            let before_bytes = entry.values;
+            entry.set_index_in_archetype(unsafe { IndexInArchetype::new_unchecked(value) });
+            assert_eq!(entry.index_in_archetype().value(), value);
+            assert!(check_bytes(&before_bytes, &entry.values, &[1, 2, 3]));
+        }
     }
 }

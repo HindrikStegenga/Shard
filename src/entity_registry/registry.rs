@@ -24,9 +24,8 @@ impl<'registry> ValidEntityRef<'registry> {
         self.entry.set_archetype_index(archetype_index);
     }
 
-    /// Sets the index in the archetype. Panics in debug mode on invalid values!!
-    pub fn set_index_in_archetype(&mut self, index_in_archetype: u32) {
-        debug_assert!(index_in_archetype < MAX_ENTITIES_PER_ARCHETYPE);
+    /// Sets the index in the archetype.
+    pub fn set_index_in_archetype(&mut self, index_in_archetype: IndexInArchetype) {
         self.entry.set_index_in_archetype(index_in_archetype);
     }
 }
@@ -64,7 +63,7 @@ impl EntityRegistry {
         } else {
             let old_slot_index = self.next_free_slot;
             let entry = &mut self.entities[old_slot_index as usize];
-            self.next_free_slot = entry.index_in_archetype();
+            self.next_free_slot = entry.index_in_archetype().value();
             Some(ValidEntityRef {
                 entity: unsafe { Entity::new_unchecked(old_slot_index, entry.version()) },
                 entry,
@@ -90,14 +89,14 @@ impl EntityRegistry {
             // Linked list of free slots is empty, we need to allocate a new entity.
             let mut entry = EntityEntry::default();
             entry.set_archetype_index(archetype_index);
-            entry.set_index_in_archetype(index_in_archetype);
+            entry.set_index_in_archetype(IndexInArchetype::new(index_in_archetype).unwrap());
             self.entities.push(entry);
             Some(unsafe { Entity::new_unchecked((self.entities.len() - 1) as u32, 0) })
         } else {
             let old_slot_index = self.next_free_slot;
             let entry = &mut self.entities[old_slot_index as usize];
-            self.next_free_slot = entry.index_in_archetype();
-            entry.set_index_in_archetype(index_in_archetype);
+            self.next_free_slot = entry.index_in_archetype().value();
+            entry.set_index_in_archetype(IndexInArchetype::new(index_in_archetype).unwrap());
             entry.set_archetype_index(archetype_index);
             Some(unsafe { Entity::new_unchecked(old_slot_index, entry.version()) })
         }
@@ -134,9 +133,9 @@ impl EntityRegistry {
         if entry.version() != entity.version() || !entry.is_valid() {
             return false;
         }
-        entry.set_invalid();
+        entry.invalidate();
         entry.set_version(entry.version().wrapping_add(1));
-        entry.set_index_in_archetype(entity.index());
+        entry.set_index_in_archetype(IndexInArchetype::new(entity.index()).unwrap());
         self.next_free_slot = entity.index();
         true
     }
