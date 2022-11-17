@@ -21,3 +21,5 @@ pub use registry::Registry;
 
 #[cfg(feature = "derive")]
 pub use shard_ecs_derive::*;
+
+mod entity_register;

@@ -4,7 +4,7 @@ use crate::*;
 extern crate std;
 use alloc::vec::Vec;
 
-const ENTITY_COUNT: u32 = MAX_ENTITY_HANDLE_VALUE;
+const ENTITY_COUNT: u32 = 2;
 
 #[test]
 fn test_entity_registry() {
@@ -35,12 +35,12 @@ fn test_entity_registry() {
         .into_iter()
         .filter_map(|_| registry.create_entity_with(1, 2))
         .collect::<Vec<_>>();
-    entities.iter().rev().for_each(|entity| {
-        let entry = registry.get_entity_entry(*entity).unwrap();
+    entities.iter().rev().cloned().for_each(|entity| {
+        let entry = registry.get_entity_entry(entity).unwrap();
         assert_ne!(entry.version(), 0);
         assert_eq!(entry.archetype_index(), 1);
         assert_eq!(entry.index_in_archetype().value(), 2);
-        assert!(registry.destroy_entity(*entity));
+        assert!(registry.destroy_entity(entity));
     });
     entities.iter().for_each(|entity| {
         assert!(!registry.destroy_entity(*entity));
