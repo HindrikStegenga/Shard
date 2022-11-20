@@ -1,10 +1,12 @@
 mod archetype_index;
 mod entry;
+mod iterator;
 mod index_in_archetype;
 
-use crate::Entity;
+use crate::{Entity};
 use alloc::vec::*;
 use entry::*;
+use iterator::*;
 use index_in_archetype::*;
 
 use self::archetype_index::ArchetypeIndex;
@@ -48,7 +50,7 @@ impl Default for EntityRegister {
 }
 
 impl EntityRegister {
-    pub const MAX_ENTITY_COUNT: usize = 100;
+    pub const MAX_ENTITY_COUNT: usize = crate::MAX_ENTITY_HANDLE_VALUE as usize;
 
     pub fn can_register_new_entity(&self) -> bool {
         self.entities.len() < Self::MAX_ENTITY_COUNT
@@ -72,7 +74,7 @@ impl EntityRegister {
             self.next_free_slot = entry.index_in_archetype().value();
             ValidEntityRef {
                 entity: unsafe { Entity::new_unchecked(slot as u32, entry.version()) },
-                entry: self.entities.last_mut().unwrap(),
+                entry: &mut self.entities[slot as usize]
             }
         };
         valid_entity_ref.set_archetype_index(archetype_index);
@@ -115,6 +117,10 @@ impl EntityRegister {
         }
         Some(entry)
     }
+    
+    pub fn iter(&self) -> impl Iterator<Item = Entity> + '_ {
+        EntityIter::new(&self.entities)
+    }
 }
 
 #[cfg(test)]
@@ -135,21 +141,91 @@ mod tests {
                 assert!(!slot.is_valid());
                 value = slot.index_in_archetype().value();
             }
-        }
-        
+        }   
     }
 
     #[test]
     fn test_entity_register() {
         let mut register = EntityRegister::default();
+        let index_in_archetype = IndexInArchetype::new(1).unwrap();
+        let archetype_index = ArchetypeIndex::new(1).unwrap();
+
         let entity = register
-            .register_new_entity(IndexInArchetype::new(1).unwrap(), ArchetypeIndex::new(1).unwrap())
+            .register_new_entity(index_in_archetype, archetype_index)
             .unwrap().entity();
         
         assert!(register.get_entity_entry(entity).is_some());
         verify_linked_list(&register);
+        assert_eq!(register.next_free_slot, IndexInArchetype::INVALID_VALUE);
+        assert_eq!(register.entities.len(), 1);
 
+        assert!(register.deregister_entity(entity));
+        assert_eq!(register.next_free_slot, entity.index());
+        assert!(!register.entities[entity.index() as usize].is_valid());
+        assert_eq!(register.entities[entity.index() as usize].version(), 1);
+        assert_eq!(register.entities[entity.index() as usize].archetype_index(), ArchetypeIndex::INVALID_VALUE);
+        assert!(register.get_entity_entry(entity).is_none());
+        assert!(register.get_entity_entry_mut(entity).is_none());
 
+        let entity = register.register_new_entity(index_in_archetype, archetype_index).unwrap().entity();
+        let entry = register.get_entity_entry(entity).unwrap();
+        assert_eq!(entry.archetype_index(), archetype_index.value());
+        assert_eq!(entry.index_in_archetype(), index_in_archetype);
+        assert_eq!(entity.index(), 0);
 
+        verify_linked_list(&register);
+        assert_eq!(register.next_free_slot, IndexInArchetype::INVALID_VALUE);
+        assert_eq!(register.entities.len(), 1);
+
+    }
+
+    const ENTITY_COUNT: u32 = 1024;
+    #[test]
+    fn test_many_entities() {
+        let mut registry = EntityRegister::default();
+        // Check destroying invalid entity.
+        assert!(!registry.deregister_entity(Entity::invalid()));
+        let index_in_archetype = IndexInArchetype::new(2).unwrap();
+        let archetype_index = ArchetypeIndex::new(1).unwrap();
+
+        let entities = (0..ENTITY_COUNT)
+            .into_iter()
+            .filter_map(|_| registry.register_new_entity(index_in_archetype, archetype_index).map(|e|e.entity()))
+            .collect::<Vec<_>>();
+        entities.iter().rev().cloned().for_each(|e| {
+            let entry = registry.get_entity_entry(e).unwrap();
+            assert_eq!(entry.version(), 0);
+            assert_eq!(entry.archetype_index(), 1);
+            assert_eq!(entry.index_in_archetype().value(), 2);
+            assert!(registry.deregister_entity(e));
+        });
+        entities.iter().cloned().for_each(|e| {
+            assert_eq!(registry.deregister_entity(e), false);
+            assert!(registry.get_entity_entry(e).is_none());
+            assert!(registry.get_entity_entry_mut(e).is_none());
+        });
+
+        assert!(!registry.deregister_entity(Entity::invalid()));
+
+        let entities = (0..ENTITY_COUNT)
+            .into_iter()
+            .filter_map(|_| registry.register_new_entity(index_in_archetype, archetype_index).map(|e|e.entity()))
+            .collect::<Vec<_>>();
+        entities.iter().rev().cloned().for_each(|entity| {
+            let entry = registry.get_entity_entry(entity).unwrap();
+            assert_ne!(entry.version(), 0);
+            assert_eq!(entry.archetype_index(), 1);
+            assert_eq!(entry.index_in_archetype().value(), 2);
+            assert!(registry.deregister_entity(entity));
+        });
+        entities.iter().for_each(|entity| {
+            assert!(!registry.deregister_entity(*entity));
+            assert!(registry.get_entity_entry(*entity).is_none());
+            assert!(registry.get_entity_entry_mut(*entity).is_none());
+        });
+
+        for entity in registry.iter() {
+            let _ = entities.contains(&entity);
+        }
     }
 }
