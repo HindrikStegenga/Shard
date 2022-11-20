@@ -4,11 +4,8 @@ use alloc::vec::*;
 use core::iter::FusedIterator;
 use core::marker::PhantomData;
 
-pub(crate) struct FilterArchetypeIterMut<
-    'a,
-    G: ComponentGroup,
-    F: Fn(&ArchetypeDescriptor) -> bool,
-> {
+pub(crate) struct FilterArchetypeIterMut<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool>
+{
     sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
     archetypes: &'a mut [Archetype],
     current_level: u8,
@@ -17,9 +14,7 @@ pub(crate) struct FilterArchetypeIterMut<
     _phantom: PhantomData<fn(G)>,
 }
 
-impl<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool>
-    FilterArchetypeIterMut<'a, G, F>
-{
+impl<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool> FilterArchetypeIterMut<'a, G, F> {
     pub(in crate::archetype_registry) fn new(
         sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
         archetypes: &'a mut [Archetype],

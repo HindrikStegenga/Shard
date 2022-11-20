@@ -28,8 +28,12 @@ pub trait ComponentGroup: SealedComponentGroup + Sized + 'static {
     type MutRefTuple<'c>: 'c
     where
         Self: 'c;
-    type SliceRefTuple<'c>: 'c where Self : 'c;
-    type SliceMutRefTuple<'c>: 'c where Self : 'c;
+    type SliceRefTuple<'c>: 'c
+    where
+        Self: 'c;
+    type SliceMutRefTuple<'c>: 'c
+    where
+        Self: 'c;
 
     /// The descriptor which exactly specifies all components of the component group.
     const DESCRIPTOR: ComponentGroupDescriptor;

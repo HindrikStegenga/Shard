@@ -4,11 +4,7 @@ use alloc::vec::*;
 use core::iter::FusedIterator;
 use core::marker::PhantomData;
 
-pub(crate) struct FilterArchetypeIter<
-    'a,
-    G: ComponentGroup,
-    F: Fn(&ArchetypeDescriptor) -> bool,
-> {
+pub(crate) struct FilterArchetypeIter<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool> {
     sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
     archetypes: &'a [Archetype],
     current_level: u8,

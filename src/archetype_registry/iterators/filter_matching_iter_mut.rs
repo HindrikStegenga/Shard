@@ -5,17 +5,12 @@ use crate::Entity;
 use alloc::vec::*;
 use core::iter::FusedIterator;
 
-pub(crate) struct FilterMatchingIterMut<
-    'a,
-    G: ComponentGroup,
-    F: Fn(&ArchetypeDescriptor) -> bool,
-> {
+pub(crate) struct FilterMatchingIterMut<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool>
+{
     inner_iterator: FilterArchetypeIterMut<'a, G, F>,
 }
 
-impl<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool>
-    FilterMatchingIterMut<'a, G, F>
-{
+impl<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool> FilterMatchingIterMut<'a, G, F> {
     pub(in crate::archetype_registry) fn new(
         sorted_mappings: &'a [Vec<SortedArchetypeKey>; MAX_COMPONENTS_PER_ENTITY],
         archetypes: &'a mut [Archetype],

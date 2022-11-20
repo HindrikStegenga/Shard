@@ -350,10 +350,7 @@ impl Archetype {
     /// - [`index`] must be smaller than the amount of entities in the archetype.
     /// - [`G`] must exactly match the type store in the archetype.
     /// - Ordering of component in [`G`] may be different.
-    pub unsafe fn swap_remove_unchecked<G: ComponentGroup>(
-        &mut self,
-        index: u32,
-    ) -> (G, bool) {
+    pub unsafe fn swap_remove_unchecked<G: ComponentGroup>(&mut self, index: u32) -> (G, bool) {
         debug_assert!(index < self.len());
         if index == self.len() - 1 {
             // Is the last one, so just drop it.
@@ -406,10 +403,7 @@ impl Archetype {
     /// # Safety:
     /// - [`G`] must be exactly the type stored in the archetype.
     /// - a compatible one also works. (i.e. same archetype, different ordering)
-    pub unsafe fn read_components_exact_unchecked<G: ComponentGroup>(
-        &self,
-        index: u32,
-    ) -> G {
+    pub unsafe fn read_components_exact_unchecked<G: ComponentGroup>(&self, index: u32) -> G {
         let pointers = self.offset_sorted_pointers_unchecked(index);
         G::read_from_sorted_pointers(&pointers)
     }

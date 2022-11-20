@@ -69,7 +69,10 @@ impl EntityEntry {
         return self.archetype_index() != INVALID_ARCHETYPE_INDEX;
     }
     /// Sets the archetype index to invalid, indicating this entry does not point to a existing entity.
-    pub fn invalidate(&mut self) {
+    /// # Safety
+    /// - next_free_slot must at most be 24 bits.
+    pub unsafe fn invalidate(&mut self, next_free_slot: u32) {
+        self.set_index_in_archetype(IndexInArchetype::new_unchecked(next_free_slot));
         self.set_archetype_index(INVALID_ARCHETYPE_INDEX);
     }
 }

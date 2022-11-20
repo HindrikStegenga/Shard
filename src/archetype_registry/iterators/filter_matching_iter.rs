@@ -5,8 +5,7 @@ use crate::Entity;
 use alloc::vec::*;
 use core::iter::FusedIterator;
 
-pub(crate) struct FilterMatchingIter<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool>
-{
+pub(crate) struct FilterMatchingIter<'a, G: ComponentGroup, F: Fn(&ArchetypeDescriptor) -> bool> {
     inner_iterator: FilterArchetypeIter<'a, G, F>,
 }
 
