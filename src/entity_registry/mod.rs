@@ -37,7 +37,7 @@ impl EntityRegistry {
         if self.entities.len() >= Self::MAX_ENTITY_COUNT {
             return None;
         }
-        let (entity, mut entry) = if self.next_free_slot == IndexInArchetype::INVALID_VALUE {
+        let (entity, entry) = if self.next_free_slot == IndexInArchetype::INVALID_VALUE {
             // Linked list of free slots is empty, so we need to allocate a new entity.
             self.entities.push(EntityEntry::default());
             let idx = self.entities.len() - 1;
