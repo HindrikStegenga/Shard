@@ -3,13 +3,13 @@ use crate::INVALID_ARCHETYPE_INDEX;
 
 /// Represents entity reference to the [ version | index_in_archetype | archetype_index | length | custom_bits ].
 /// MEMORY_LAYOUTS:
-/// Valid:      |version: u8|idx_in_arch: u24|arch_idx: u16| archetype_length: u8 | custom_bits: u8 ]
-/// Invalid:    |version: u8|next_fr_slt: u24|INV_ARCH: u16| undefined: u8        | undefined: u8   ]
-///             |     0     | 1    2     3   | 4       5   |        6             |        7        ]
+/// Valid:      |version: u8|idx_in_arch: u24|arch_idx: u16 ]
+/// Invalid:    |version: u8|next_fr_slt: u24|INV_ARCH: u16 ]
+///             |     0     | 1    2     3   | 4       5    ]
 #[repr(C)]
 #[derive(Clone, Debug)]
 pub struct EntityEntry {
-    values: [u8; 8],
+    values: [u8; 6],
 }
 
 impl Default for EntityEntry {
@@ -22,8 +22,6 @@ impl Default for EntityEntry {
                 0, // index_in_archetype    byte 3
                 0, // archetype_index       byte 1
                 0, // archetype_index       byte 2
-                0, // archetype_length      byte 1
-                0, // custom_bits           byte 1
             ],
         }
     }
@@ -51,18 +49,6 @@ impl EntityEntry {
         let bytes = archetype_index.to_ne_bytes();
         self.values[4] = bytes[0];
         self.values[5] = bytes[1];
-    }
-    pub const fn archetype_length(&self) -> u8 {
-        self.values[6]
-    }
-    pub fn set_archetype_length(&mut self, archetype_length: u8) {
-        self.values[6] = archetype_length;
-    }
-    pub const fn user_defined_metadata(&self) -> u8 {
-        self.values[7]
-    }
-    pub fn set_user_defined_metadata(&mut self, metadata: u8) {
-        self.values[7] = metadata;
     }
     /// Checks if this entry points to a valid entity.
     pub const fn is_valid(&self) -> bool {
@@ -99,8 +85,8 @@ mod tests {
     /// Checks if bytes that are not in the mutation_allowed list are modified.
     /// Returns true if they're not mutated.
     fn check_bytes(
-        before_bytes: &[u8; 8],
-        after_bytes: &[u8; 8],
+        before_bytes: &[u8; 6],
+        after_bytes: &[u8; 6],
         mutation_allowed: &[usize],
     ) -> bool {
         for i in 0..before_bytes.len() {
@@ -119,8 +105,6 @@ mod tests {
         let mut entry = EntityEntry::default();
 
         assert_eq!(entry.version(), 0);
-        assert_eq!(entry.user_defined_metadata(), 0);
-        assert_eq!(entry.archetype_length(), 0);
         assert_eq!(entry.archetype_index(), 0);
         assert_eq!(entry.index_in_archetype().value(), 0);
 
@@ -136,20 +120,6 @@ mod tests {
             entry.set_version(value);
             assert_eq!(entry.version(), value);
             assert!(check_bytes(&before_bytes, &entry.values, &[0]));
-        }
-        // Test user defined metadata field
-        for value in TEST_VALUES_U8 {
-            let before_bytes = entry.values;
-            entry.set_user_defined_metadata(value);
-            assert_eq!(entry.user_defined_metadata(), value);
-            assert!(check_bytes(&before_bytes, &entry.values, &[7]));
-        }
-        // Test archetype_length field
-        for value in TEST_VALUES_U8 {
-            let before_bytes = entry.values;
-            entry.set_archetype_length(value);
-            assert_eq!(entry.archetype_length(), value);
-            assert!(check_bytes(&before_bytes, &entry.values, &[6]));
         }
         // Test archetype index field.
         for value in TEST_VALUES_U16 {
