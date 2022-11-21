@@ -1,6 +1,6 @@
 [package]
 name = "shard-ecs"
-version = "0.2.6"
+version = "0.2.7"
 edition = "2021"
 authors = ["Hindrik Stegenga <mail@hindrik.dev>"]
 description = "The Shard Entity Component System."
