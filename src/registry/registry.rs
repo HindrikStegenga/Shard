@@ -1,9 +1,10 @@
+use crate::ArchetypeIndex;
 use crate::archetype::Archetype;
 use crate::archetype_descriptor::ArchetypeDescriptor;
 use crate::archetype_registry::ArchetypeRegistry;
 use crate::descriptors::component_group::ComponentGroup;
-use crate::entity_registry::entry::IndexInArchetype;
-use crate::{entity_registry::registry::EntityRegistry, Component, Entity};
+use crate::entity_registry::IndexInArchetype;
+use crate::{entity_registry::EntityRegistry, Component, Entity};
 
 /// The primary construct in the *Shard* Entity Component System (ECS).
 #[derive(Default)]
@@ -21,11 +22,6 @@ impl Registry {
         if !G::DESCRIPTOR.is_valid() {
             return Err(components);
         }
-
-        let mut entity_entry = match self.entities.create_entity() {
-            Some(v) => v,
-            None => return Err(components),
-        };
         let (archetype_index, archetype) = match self
             .archetypes
             .find_or_create_archetype(G::DESCRIPTOR.archetype())
@@ -33,17 +29,19 @@ impl Registry {
             Some(v) => v,
             None => return Err(components),
         };
-        let index_in_archetype =
-            unsafe { archetype.push_entity_unchecked(entity_entry.entity(), components) };
-        entity_entry.set_index_in_archetype(IndexInArchetype::new(index_in_archetype).unwrap());
-        entity_entry.set_archetype_index(archetype_index);
-        Ok(entity_entry.entity())
+        let index_in_archetype = IndexInArchetype::new(archetype.len()).unwrap();
+        let entity = match self.entities.create_entity(index_in_archetype, ArchetypeIndex::new(archetype_index).unwrap()) {
+            Some(v) => v,
+            None => return Err(components),
+        };
+        unsafe { archetype.push_entity_unchecked(entity, components) };
+        Ok(entity)
     }
 
     /// Removes the entity from the registry.
     /// This function return false if the entity given is invalid.
     pub fn destroy_entity(&mut self, entity: Entity) -> bool {
-        let entry = match self.entities.get_entity_entry(entity) {
+        let entry = match self.entities.entity_entry(entity) {
             None => return false,
             Some(v) => v,
         };
@@ -57,7 +55,7 @@ impl Registry {
                     .entities()
                     .get_unchecked(index_in_archetype.value() as usize);
                 self.entities
-                    .get_entity_entry_mut(swapped_entity)
+                    .entity_entry_mut(swapped_entity)
                     .unwrap()
                     .set_index_in_archetype(index_in_archetype);
             }
@@ -71,7 +69,7 @@ impl Registry {
     /// Otherwise, it simply leaves the entity as is.
     /// This function return None if either entity given is invalid, or does not match the given component group.
     pub fn remove_entity<'a, G: ComponentGroup>(&'a mut self, entity: Entity) -> Option<G> {
-        let entry = match self.entities.get_entity_entry(entity) {
+        let entry = match self.entities.entity_entry(entity) {
             None => return None,
             Some(v) => v,
         };
@@ -84,7 +82,7 @@ impl Registry {
                     // We retrieve the entity handle using the metadata, which is now at the old entity's position.
                     let swapped_entity = archetype.entities()[index_in_archetype.value() as usize];
                     self.entities
-                        .get_entity_entry_mut(swapped_entity)
+                        .entity_entry_mut(swapped_entity)
                         .unwrap()
                         .set_index_in_archetype(index_in_archetype);
                     let _v = self.entities.destroy_entity(entity);
@@ -103,7 +101,7 @@ impl Registry {
     /// Returns true if a given entity has the specified component.
     /// Returns false if entity is invalid or does not have the specified component.
     pub fn has_component<C: Component>(&self, entity: Entity) -> bool {
-        let entry = match self.entities.get_entity_entry(entity) {
+        let entry = match self.entities.entity_entry(entity) {
             None => return false,
             Some(v) => v,
         };
@@ -115,7 +113,7 @@ impl Registry {
     /// Returns false if entity is invalid or does not have all of the specified components.
     /// If you need to check for only a single components, prefer to use [`Registry::has_component`] instead.
     pub fn has_components<'registry, G: ComponentGroup>(&'registry self, entity: Entity) -> bool {
-        let entry = match self.entities.get_entity_entry(entity) {
+        let entry = match self.entities.entity_entry(entity) {
             None => return false,
             Some(v) => v,
         };
@@ -128,7 +126,7 @@ impl Registry {
     /// Returns a reference to the specified component if the entity has it.
     /// Returns false if entity is invalid or does not have the specified component.
     pub fn get_component<C: Component>(&self, entity: Entity) -> Option<&C> {
-        let entry = match self.entities.get_entity_entry(entity) {
+        let entry = match self.entities.entity_entry(entity) {
             None => return None,
             Some(v) => v,
         };
@@ -149,7 +147,7 @@ impl Registry {
         &'registry self,
         entity: Entity,
     ) -> Option<G::RefTuple<'registry>> {
-        let entry = match self.entities.get_entity_entry(entity) {
+        let entry = match self.entities.entity_entry(entity) {
             None => return None,
             Some(v) => v,
         };
@@ -170,7 +168,7 @@ impl Registry {
     /// Returns false if entity is invalid or does not have the specified component.
     /// If you need to get only a single component, use [`Registry::get_component_mut`] instead.
     pub fn get_component_mut<C: Component>(&mut self, entity: Entity) -> Option<&mut C> {
-        let entry = match self.entities.get_entity_entry(entity) {
+        let entry = match self.entities.entity_entry(entity) {
             None => return None,
             Some(v) => v,
         };
@@ -190,7 +188,7 @@ impl Registry {
         &'registry mut self,
         entity: Entity,
     ) -> Option<G::MutRefTuple<'registry>> {
-        let entry = match self.entities.get_entity_entry(entity) {
+        let entry = match self.entities.entity_entry(entity) {
             None => return None,
             Some(v) => v,
         };
@@ -213,7 +211,7 @@ impl Registry {
     /// - Invalid entity provided.
     /// - Destination archetype could not be created.
     pub fn add_component<C: Component>(&mut self, entity: Entity, component: C) -> Result<(), C> {
-        let entry = match self.entities.get_entity_entry(entity) {
+        let entry = match self.entities.entity_entry(entity) {
             None => return Err(component),
             Some(v) => v.clone(),
         };
@@ -234,7 +232,7 @@ impl Registry {
             let swapped_entity =
                 source_archetype.entities()[entry.index_in_archetype().value() as usize];
             self.entities
-                .get_entity_entry_mut(swapped_entity)
+                .entity_entry_mut(swapped_entity)
                 .unwrap()
                 .set_index_in_archetype(entry.index_in_archetype());
         }
@@ -265,7 +263,7 @@ impl Registry {
             source_archetype.decrement_len_unchecked();
 
             // Update the original entity entry to point to destination archetype and index in archetype.
-            let entity_entry = self.entities.get_entity_entry_mut(entity).unwrap();
+            let entity_entry = self.entities.entity_entry_mut(entity).unwrap();
             entity_entry.set_archetype_index(destination_archetype_index);
             entity_entry.set_index_in_archetype(
                 IndexInArchetype::new(destination_entity_index_in_archetype).unwrap(),
@@ -281,7 +279,7 @@ impl Registry {
     /// - Invalid entity provided.
     /// - Destination archetype could not be created.
     pub fn remove_component<C: Component>(&mut self, entity: Entity) -> Result<C, ()> {
-        let entry = match self.entities.get_entity_entry(entity) {
+        let entry = match self.entities.entity_entry(entity) {
             None => return Err(()),
             Some(v) => v.clone(),
         };
@@ -302,7 +300,7 @@ impl Registry {
             let swapped_entity =
                 source_archetype.entities()[entry.index_in_archetype().value() as usize];
             self.entities
-                .get_entity_entry_mut(swapped_entity)
+                .entity_entry_mut(swapped_entity)
                 .unwrap()
                 .set_index_in_archetype(entry.index_in_archetype());
         }
@@ -333,7 +331,7 @@ impl Registry {
             source_archetype.decrement_len_unchecked();
 
             // Update the original entity entry to point to destination archetype and index in archetype.
-            let entity_entry = self.entities.get_entity_entry_mut(entity).unwrap();
+            let entity_entry = self.entities.entity_entry_mut(entity).unwrap();
             entity_entry.set_archetype_index(destination_archetype_index);
             entity_entry.set_index_in_archetype(
                 IndexInArchetype::new(destination_entity_index_in_archetype).unwrap(),

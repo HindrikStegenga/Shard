@@ -1,5 +1,5 @@
 use super::entry::EntityEntry;
-use crate::Entity;
+use super::Entity;
 use core::iter::FusedIterator;
 
 pub struct EntityIter<'a> {

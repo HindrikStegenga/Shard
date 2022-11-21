@@ -1,7 +1,5 @@
 use crate::constants::*;
 
-use super::entry::IndexInArchetype;
-
 /// Represents an abstract Entity. Is internally a handle into the ECS to query it's associated components.
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]

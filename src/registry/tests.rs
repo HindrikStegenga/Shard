@@ -111,7 +111,7 @@ fn test_registry() {
 
     registry.destroy_entity(entity);
 
-    const COUNT: usize = 128;
+    const COUNT: usize = 32;
     let mut registry = Registry::default();
     let entities: Vec<_> = (0..COUNT)
         .map(|e| {

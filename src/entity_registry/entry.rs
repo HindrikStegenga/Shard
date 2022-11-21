@@ -1,59 +1,5 @@
+use super::*;
 use crate::INVALID_ARCHETYPE_INDEX;
-
-#[repr(C)]
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct IndexInArchetype {
-    value: u32,
-}
-
-impl IndexInArchetype {
-    // Equivalent to 2^24 - 1, as the stored value is [0 - 2^24) excluding 2^24 itself.
-    pub const INVALID_VALUE: u32 = 16777215;
-
-    /// Constructs a new IndexInArchetype using `value`.
-    /// Returns `None` in case `value` >= Self::INVALID_VALUE.
-    pub const fn new(value: u32) -> Option<IndexInArchetype> {
-        if value >= IndexInArchetype::INVALID_VALUE {
-            return None;
-        }
-        Some(Self { value })
-    }
-    /// Constructs a new IndexInArchetype using `value`.
-    /// If value >= `Self::INVALID_VALUE` behaviour is undefined.
-    pub const unsafe fn new_unchecked(value: u32) -> IndexInArchetype {
-        Self { value }
-    }
-
-    /// Constructs a new IndexInArchetype from raw bytes.
-    pub const fn from_bytes(bytes: [u8; 3]) -> IndexInArchetype {
-        let mut value = 0;
-        value += (bytes[0] as u32) << 16;
-        value += (bytes[1] as u32) << 8;
-        value += bytes[2] as u32;
-        Self { value }
-    }
-
-    /// Returns the triple byte representation of the value.
-    /// This is a shifted representation storing only the 3 most significant bytes.
-    pub const fn to_bytes(&self) -> [u8; 3] {
-        [
-            ((self.value & 0x00FF0000) >> 16) as u8,
-            ((self.value & 0x0000FF00) >> 8) as u8,
-            (self.value & 0x000000FF) as u8,
-        ]
-    }
-
-    /// Returns the raw numeric value of the index in archetype.
-    pub const fn value(&self) -> u32 {
-        self.value
-    }
-}
-
-impl Default for IndexInArchetype {
-    fn default() -> Self {
-        Self { value: 0 }
-    }
-}
 
 /// Represents entity reference to the [ version | index_in_archetype | archetype_index | length | custom_bits ].
 /// MEMORY_LAYOUTS:
@@ -123,7 +69,10 @@ impl EntityEntry {
         return self.archetype_index() != INVALID_ARCHETYPE_INDEX;
     }
     /// Sets the archetype index to invalid, indicating this entry does not point to a existing entity.
-    pub fn invalidate(&mut self) {
+    /// # Safety
+    /// - next_free_slot must at most be 24 bits.
+    pub unsafe fn invalidate(&mut self, next_free_slot: u32) {
+        self.set_index_in_archetype(IndexInArchetype::new_unchecked(next_free_slot));
         self.set_archetype_index(INVALID_ARCHETYPE_INDEX);
     }
 }
@@ -166,7 +115,7 @@ mod tests {
     }
 
     #[test]
-    fn test_entity_register_enty() {
+    fn test_entity_register_entry() {
         let mut entry = EntityEntry::default();
 
         assert_eq!(entry.version(), 0);

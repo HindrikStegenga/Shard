@@ -1,6 +1,6 @@
 use crate::archetype_registry::ArchetypeRegistry;
 use crate::descriptors::component_group::ComponentGroup;
-use crate::entity_registry::entity::*;
+use crate::entity_registry::*;
 use crate::test_components::*;
 
 #[test]
