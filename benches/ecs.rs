@@ -37,8 +37,38 @@ fn criterion_benchmark(c: &mut Criterion) {
         b.iter_batched(||{
             entities.choose(&mut thread_rng()).unwrap().clone()
         }, |entity| {
-            registry.get_component::<P>(black_box(entity));
-        }, BatchSize::LargeInput)
+            registry.get_component::<P>(black_box(entity)).unwrap();
+        }, BatchSize::SmallInput)
+    });
+    c.bench_function("iterate_entities", |b|{
+        b.iter(||{
+            for entity in registry.iter_entities() {
+                black_box(entity);
+            }
+        });
+    });
+    c.bench_function("iterate_p_components", |b|{
+        b.iter(||{
+            for p in registry.iter_components_matching::<P>() {
+                for p in p {
+                    black_box(p);
+                }
+            }
+        });
+    });
+    let p_components = (0..COUNT).into_iter().map(|_|{
+        P {
+            x: rand::random(),
+            y: rand::random(),
+            z: rand::random()
+        }
+    }).collect::<Vec<_>>();
+    c.bench_function("iterate_array_of_p_components", |b|{
+        b.iter(||{
+            for p in &p_components {
+                black_box(p);
+            }
+        })
     });
 
 }
